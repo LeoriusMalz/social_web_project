@@ -1,3 +1,3 @@
-SELECT id, username, email
+SELECT id, nickname, email
 FROM users
 WHERE id = $1;

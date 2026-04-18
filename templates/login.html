@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Авторизация</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
 <div class="container">
-    <h1>Register</h1>
+    <h1>Авторизация</h1>
 
-    <input id="nickname" type="text" placeholder="Nickname">
-    <input id="email" type="email" placeholder="Email">
+    <input id="login" type="text" placeholder="Почта/Логин">
+    <input id="password" type="password" placeholder="Пароль">
 
-    <button onclick="submitForm()">Submit</button>
+    <button onclick="submitForm()">Войти</button>
+    <button onclick="window.location.href='/register'">Нет аккаунта? Регистрация</button>
 
     <p id="result"></p>
 </div>

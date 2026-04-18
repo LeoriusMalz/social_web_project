@@ -1,3 +1,3 @@
-INSERT INTO users (username, email)
-VALUES ($1, $2)
-RETURNING id, username, email;
+INSERT INTO users (name, surname, phone, nickname, email)
+VALUES ('-', '-', '-', $1, $2)
+RETURNING id, nickname, email;

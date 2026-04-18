@@ -26,11 +26,11 @@ CREATE TABLE IF NOT EXISTS participant_roles (
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(30) NOT NULL,
-    surname VARCHAR(30) NOT NULL,
-    patronym VARCHAR(40),
-    nickname VARCHAR(20) UNIQUE ,
-    phone VARCHAR(16) NOT NULL UNIQUE ,
+    name VARCHAR(30) NOT NULL DEFAULT 'Name',
+    surname VARCHAR(30) NOT NULL DEFAULT 'Surname',
+    patronym VARCHAR(40) DEFAULT NULL,
+    nickname VARCHAR(20) UNIQUE,
+    phone VARCHAR(16) UNIQUE DEFAULT NULL,
     email TEXT,
     sex CHAR(3) DEFAULT NULL,
     marital_status_id INTEGER DEFAULT NULL,

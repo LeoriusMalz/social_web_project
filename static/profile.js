@@ -8,10 +8,12 @@ async function loadUser() {
     }
 
     document.getElementById("nickname").innerText =
-        "Nickname: " + data.username;
+        "Nickname: " + data.nickname;
 
     document.getElementById("email").innerText =
         "Email: " + data.email;
 }
 
-loadUser();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadUser();
+});
