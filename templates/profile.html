@@ -1,24 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Profile</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль</title>
+    <link rel="stylesheet" href="/static/auth.css">
 </head>
 <body>
-
 <div class="container">
-    <h1>Profile</h1>
+    <div class="auth-card">
+        <h1 class="auth-title">Профиль</h1>
 
-    <p id="nickname"></p>
-    <p id="email"></p>
+        <p id="nickname"></p>
+        <p id="email"></p>
+
+        {% if is_owner %}
+            <button type="button" id="logout-btn" class="auth-link-button">Выйти</button>
+        {% endif %}
+    </div>
 </div>
 
 <script>
     const userId = {{ user_id }};
+    const isOwner = {{ 'true' if is_owner else 'false' }};
 </script>
 
 <script src="/static/profile.js"></script>
-
 </body>
 </html>

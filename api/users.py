@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
 
+from auth import SESSION_COOKIE_NAME, require_authenticated_user
 from db import get_db
+from services.sessions import create_session, revoke_session_by_token
 from services.users import check_user_exists, create_user, get_user, register_user, verify_user_credentials
 
 router = APIRouter()
@@ -113,17 +115,45 @@ async def check_user_availability(
 
 
 @router.post("/login")
-async def login_user(payload: LoginRequest, db=Depends(get_db)):
+async def login_user(payload: LoginRequest, request: Request, response: Response, db=Depends(get_db)):
     user = await verify_user_credentials(db, payload.login, payload.password)
 
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный логин или пароль")
 
+    session = await create_session(
+        db,
+        user_id=user["id"],
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
+    )
+
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session["token"],
+        max_age=session["expires_in"],
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        path="/",
+    )
+
     return user
 
 
+@router.post("/logout")
+async def logout_user(request: Request, response: Response, db=Depends(get_db)):
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
+
+    if session_token:
+        await revoke_session_by_token(db, session_token)
+
+    response.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
+    return {"ok": True}
+
+
 @router.get("/{user_id}")
-async def get_user_api(user_id: int, db=Depends(get_db)):
+async def get_user_api(user_id: int, db=Depends(get_db), _=Depends(require_authenticated_user)):
     user = await get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
