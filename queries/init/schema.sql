@@ -29,14 +29,15 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(30) NOT NULL DEFAULT 'Name',
     surname VARCHAR(30) NOT NULL DEFAULT 'Surname',
     patronym VARCHAR(40) DEFAULT NULL,
-    nickname VARCHAR(20) UNIQUE,
+    nickname VARCHAR(20) UNIQUE NOT NULL,
     phone VARCHAR(16) UNIQUE DEFAULT NULL,
-    email TEXT,
-    sex CHAR(3) DEFAULT NULL,
+    email TEXT UNIQUE NOT NULL,
+    sex CHAR(1) NOT NULL,
     marital_status_id INTEGER DEFAULT NULL,
     city_id INTEGER DEFAULT NULL,
     created_at TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL,
+    password_hash TEXT NOT NULL,
 
     FOREIGN KEY (marital_status_id) REFERENCES marital_statuses (status_id),
     FOREIGN KEY (city_id) REFERENCES cities (city_id)
@@ -116,3 +117,10 @@ CREATE TABLE IF NOT EXISTS message_reads (
     FOREIGN KEY (msg_id) REFERENCES messages (msg_id),
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_nickname_lower_unique_idx
+    ON users (LOWER(nickname));
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique_idx
+    ON users (LOWER(email));
+

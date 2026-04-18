@@ -14,7 +14,7 @@ async def register_page(request: Request):
     return templates.TemplateResponse(request, "register.html", {"request": request})
 
 @router.get("/friends", response_class=HTMLResponse)
-async def register_page(request: Request):
+async def friends_page(request: Request):
     return templates.TemplateResponse(request, "friends.html", {"request": request})
 
 @router.get("/id{user_id}", response_class=HTMLResponse)
