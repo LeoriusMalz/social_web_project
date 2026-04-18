@@ -116,3 +116,32 @@ CREATE TABLE IF NOT EXISTS message_reads (
     FOREIGN KEY (msg_id) REFERENCES messages (msg_id),
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_nickname_lower_unique_idx
+    ON users (LOWER(nickname));
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique_idx
+    ON users (LOWER(email));
+
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+    session_id BIGSERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP DEFAULT NULL,
+    user_agent TEXT,
+    ip_address TEXT,
+
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS user_sessions_user_id_idx
+    ON user_sessions (user_id);
+
+CREATE INDEX IF NOT EXISTS user_sessions_expires_at_idx
+    ON user_sessions (expires_at);

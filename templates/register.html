@@ -1,23 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Регистрация</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/auth.css">
 </head>
 <body>
-
 <div class="container">
-    <h1>Регистрация</h1>
+    <div class="auth-card">
+        <h1 class="auth-title">Регистрация</h1>
 
-    <input id="nickname" type="text" placeholder="Nickname">
-    <input id="email" type="email" placeholder="Email">
+        <form id="register-form" class="auth-form" novalidate>
+            <div class="field">
+                <label class="field-label" for="nickname">Логин</label>
+                <input id="nickname" class="field-input" type="text" placeholder="Придумайте логин" autocomplete="username">
+                <small id="nickname-error" class="field-error"></small>
+            </div>
 
-    <button onclick="submitForm()">Зарегистрироваться</button>
+            <div class="field">
+                <label class="field-label" for="email">Почта</label>
+                <input id="email" class="field-input" type="email" placeholder="Введите email" autocomplete="email">
+                <small id="email-error" class="field-error"></small>
+            </div>
 
-    <p id="result"></p>
+            <div class="inline-grid">
+                <div class="field">
+                    <label class="field-label" for="name">Имя</label>
+                    <input id="name" class="field-input" type="text" placeholder="Введите имя" autocomplete="given-name">
+                    <small id="name-error" class="field-error"></small>
+                </div>
+
+                <div class="field">
+                    <label class="field-label" for="surname">Фамилия</label>
+                    <input id="surname" class="field-input" type="text" placeholder="Введите фамилию" autocomplete="family-name">
+                    <small id="surname-error" class="field-error"></small>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="patronym">Отчество (необязательно)</label>
+                <input id="patronym" class="field-input" type="text" placeholder="Введите отчество" autocomplete="additional-name">
+                <small id="patronym-error" class="field-error"></small>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="sex">Пол</label>
+                <select id="sex" class="field-select">
+                    <option value="">Выберите пол</option>
+                    <option value="M">Мужской</option>
+                    <option value="F">Женский</option>
+                </select>
+                <small id="sex-error" class="field-error"></small>
+            </div>
+
+            <div class="inline-grid">
+                <div class="field">
+                    <label class="field-label" for="password">Пароль</label>
+                    <input id="password" class="field-input" type="password" placeholder="Не менее 8 символов" autocomplete="new-password">
+                    <small id="password-error" class="field-error"></small>
+                </div>
+
+                <div class="field">
+                    <label class="field-label" for="password-repeat">Повторите пароль</label>
+                    <input id="password-repeat" class="field-input" type="password" placeholder="Введите пароль ещё раз" autocomplete="new-password">
+                    <small id="password-repeat-error" class="field-error"></small>
+                </div>
+            </div>
+
+            <button type="submit" class="auth-button">Зарегистрироваться</button>
+            <button type="button" id="to-login" class="auth-link-button">Уже есть аккаунт? Войти</button>
+
+            <p id="result" class="form-message"></p>
+        </form>
+    </div>
 </div>
 
-<script src="/static/script.js"></script>
+<script src="/static/register.js"></script>
 </body>
 </html>

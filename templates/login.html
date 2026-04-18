@@ -1,24 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Авторизация</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/auth.css">
 </head>
 <body>
-
 <div class="container">
-    <h1>Авторизация</h1>
+    <div class="auth-card">
+        <h1 class="auth-title">Авторизация</h1>
 
-    <input id="login" type="text" placeholder="Почта/Логин">
-    <input id="password" type="password" placeholder="Пароль">
+        <form id="login-form" class="auth-form" novalidate>
+            <div class="field">
+                <label class="field-label" for="login">Логин или почта</label>
+                <input id="login" class="field-input" type="text" placeholder="Введите логин или email" autocomplete="username">
+                <small id="login-error" class="field-error"></small>
+            </div>
 
-    <button onclick="submitForm()">Войти</button>
-    <button onclick="window.location.href='/register'">Нет аккаунта? Регистрация</button>
+            <div class="field">
+                <label class="field-label" for="password">Пароль</label>
+                <input id="password" class="field-input" type="password" placeholder="Введите пароль" autocomplete="current-password">
+                <small id="password-error" class="field-error"></small>
+            </div>
 
-    <p id="result"></p>
+            <button type="submit" class="auth-button">Войти</button>
+            <button type="button" id="to-register" class="auth-link-button">Нет аккаунта? Регистрируйся</button>
+
+            <p id="result" class="form-message"></p>
+        </form>
+    </div>
 </div>
 
-<script src="/static/script.js"></script>
+<script src="/static/login.js"></script>
 </body>
 </html>
