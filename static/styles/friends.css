@@ -126,6 +126,12 @@ body {
     padding: 12px 14px;
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
     min-height: 74px;
+    transition: 0.2s ease;
+    cursor: pointer;
+}
+
+.friend-card:hover {
+    background: #dfdfdf;
 }
 
 .friend-avatar {

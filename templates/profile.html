@@ -25,6 +25,8 @@
                 <button id="more-btn" class="more-btn" type="button">подробнее...</button>
             </div>
 
+            <div id="relation-controls" class="relation-controls"></div>
+
             <div class="stats-block">
                 <button class="stat-row stat-row--clickable" id="friends-stat-btn" type="button">
                     <span>👥</span>
@@ -43,6 +45,13 @@
     <div class="details-modal" role="dialog" aria-modal="true" aria-label="Дополнительная информация">
         <h2>Информация</h2>
         <div id="details-list" class="details-list"></div>
+    </div>
+</div>
+
+<div id="people-overlay" class="details-overlay" aria-hidden="true">
+    <div class="details-modal details-modal--wide" role="dialog" aria-modal="true" aria-label="Список пользователей">
+        <h2 id="people-title">Список</h2>
+        <div id="people-list" class="people-list"></div>
     </div>
 </div>
 

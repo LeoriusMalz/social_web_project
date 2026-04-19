@@ -1,66 +1,19 @@
-const mockUsers = [
-    { id: 1, firstName: "Лев", lastName: "Мальцев", relation: "friend" },
-    { id: 2, firstName: "Дарья", lastName: "Новоселова", relation: "friend" },
-    { id: 3, firstName: "Иван", lastName: "Петров", relation: "friend" },
-    { id: 4, firstName: "Анна", lastName: "Соколова", relation: "incoming" },
-    { id: 5, firstName: "Мария", lastName: "Орлова", relation: "incoming" },
-    { id: 6, firstName: "Кирилл", lastName: "Волков", relation: "outgoing" },
-    { id: 7, firstName: "Егор", lastName: "Смирнов", relation: "outgoing" },
-    { id: 8, firstName: "Олег", lastName: "Иванов", relation: "none" },
-    { id: 9, firstName: "Павел", lastName: "Козлов", relation: "none" },
-    { id: 10, firstName: "Алексей", lastName: "Сидоров", relation: "none" },
-    { id: 11, firstName: "Елена", lastName: "Морозова", relation: "none" }
-];
-
 const listEl = document.getElementById("friends-list");
 const searchInputEl = document.getElementById("friends-search-input");
 const tabButtons = document.querySelectorAll(".friends-tab");
+const tabsEl = document.querySelector('.friends-tabs');
 
 const initialTab = new URLSearchParams(window.location.search).get("tab");
 const allowedTabs = new Set(["friends", "outgoing", "incoming"]);
 let activeTab = allowedTabs.has(initialTab) ? initialTab : "friends";
 let searchValue = "";
 
-
-// async function apiGetFriends() {
-//     return fetch("/api/friends").then(r => r.json());
-// }
-//
-// async function apiGetOutgoingRequests() {
-//     return fetch("/api/friends/outgoing").then(r => r.json());
-// }
-//
-// async function apiGetIncomingRequests() {
-//     return fetch("/api/friends/incoming").then(r => r.json());
-// }
-//
-// async function apiSearchUsers(query) {
-//     return fetch(`/api/users/search?q=${encodeURIComponent(query)}`).then(r => r.json());
-// }
-//
-// async function apiDeleteFriend(userId) {
-//     return fetch(`/api/friends/${userId}`, { method: "DELETE" });
-// }
-//
-// async function apiCancelRequest(userId) {
-//     return fetch(`/api/friends/outgoing/${userId}`, { method: "DELETE" });
-// }
-//
-// async function apiAcceptRequest(userId) {
-//     return fetch(`/api/friends/incoming/${userId}/accept`, { method: "POST" });
-// }
-//
-// async function apiRejectRequest(userId) {
-//     return fetch(`/api/friends/incoming/${userId}/reject`, { method: "POST" });
-// }
-
-
 function getFullName(user) {
-    return `${user.lastName} ${user.firstName}`;
+    return `${user.surname} ${user.name}`;
 }
 
 function getInitials(user) {
-    return `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`;
+    return `${user.name?.[0] ?? ""}${user.surname?.[0] ?? ""}`.toUpperCase();
 }
 
 function matchesPattern(user, query) {
@@ -72,6 +25,46 @@ function matchesPattern(user, query) {
     return getFullName(user).toLowerCase().includes(normalized);
 }
 
+async function apiGetFriends() {
+    const r = await fetch('/api/friends');
+    return r.json();
+}
+
+async function apiGetOutgoingRequests() {
+    const r = await fetch('/api/friends/outgoing');
+    return r.json();
+}
+
+async function apiGetIncomingRequests() {
+    const r = await fetch('/api/friends/incoming');
+    return r.json();
+}
+
+async function apiSearchUsers(query) {
+    const r = await fetch(`/api/friends/search?q=${encodeURIComponent(query)}`);
+    return r.json();
+}
+
+async function apiDeleteFriend(userId) {
+    return fetch(`/api/friends/${userId}`, { method: 'DELETE' });
+}
+
+async function apiCancelRequest(userId) {
+    return fetch(`/api/friends/outgoing/${userId}/cancel`, { method: 'POST' });
+}
+
+async function apiAcceptRequest(userId) {
+    return fetch(`/api/friends/incoming/${userId}/accept`, { method: 'POST' });
+}
+
+async function apiRejectRequest(userId) {
+    return fetch(`/api/friends/incoming/${userId}/reject`, { method: 'POST' });
+}
+
+async function apiAddFriend(userId) {
+    return fetch(`/api/friends/requests/${userId}`, { method: 'POST' });
+}
+
 function createActionButtons(user) {
     const actions = document.createElement("div");
     actions.className = "friend-actions";
@@ -81,8 +74,14 @@ function createActionButtons(user) {
         deleteBtn.className = "icon-btn icon-btn--danger";
         deleteBtn.title = "Удалить из друзей";
         deleteBtn.textContent = "🗑";
-        deleteBtn.addEventListener("click", () => {
-            console.log("Удалить из друзей:", user.id);
+        deleteBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const ok = window.confirm('Удалить пользователя из друзей?');
+            if (!ok) {
+                return;
+            }
+            await apiDeleteFriend(user.id);
+            await renderCurrentState();
         });
         actions.appendChild(deleteBtn);
     } else if (user.relation === "outgoing") {
@@ -90,8 +89,10 @@ function createActionButtons(user) {
         cancelBtn.className = "text-btn";
         cancelBtn.title = "Удалить заявку";
         cancelBtn.textContent = "✖ Заявка";
-        cancelBtn.addEventListener("click", () => {
-            console.log("Отменить заявку:", user.id);
+        cancelBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            await apiCancelRequest(user.id);
+            await renderCurrentState();
         });
         actions.appendChild(cancelBtn);
     } else if (user.relation === "incoming") {
@@ -99,16 +100,20 @@ function createActionButtons(user) {
         acceptBtn.className = "icon-btn icon-btn--success";
         acceptBtn.title = "Принять";
         acceptBtn.textContent = "✔";
-        acceptBtn.addEventListener("click", () => {
-            console.log("Принять заявку:", user.id);
+        acceptBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            await apiAcceptRequest(user.id);
+            await renderCurrentState();
         });
 
         const rejectBtn = document.createElement("button");
         rejectBtn.className = "icon-btn icon-btn--danger";
         rejectBtn.title = "Отклонить";
         rejectBtn.textContent = "✖";
-        rejectBtn.addEventListener("click", () => {
-            console.log("Отклонить заявку:", user.id);
+        rejectBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            await apiRejectRequest(user.id);
+            await renderCurrentState();
         });
 
         actions.appendChild(acceptBtn);
@@ -118,8 +123,10 @@ function createActionButtons(user) {
         addBtn.className = "text-btn";
         addBtn.title = "Отправить заявку";
         addBtn.textContent = "+ В друзья";
-        addBtn.addEventListener("click", () => {
-            console.log("Отправить заявку:", user.id);
+        addBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            await apiAddFriend(user.id);
+            await renderCurrentState();
         });
         actions.appendChild(addBtn);
     }
@@ -130,6 +137,9 @@ function createActionButtons(user) {
 function createUserCard(user) {
     const card = document.createElement("div");
     card.className = "friend-card";
+    card.addEventListener('click', () => {
+        window.location.href = `/id${user.id}`;
+    });
 
     const avatar = document.createElement("div");
     avatar.className = "friend-avatar";
@@ -192,98 +202,73 @@ function renderSimpleList(users, emptyText) {
     });
 }
 
-function renderSearchList(query) {
+function renderSearchList(users, query) {
     listEl.innerHTML = "";
 
-    const matched = mockUsers.filter(user => matchesPattern(user, query));
+    const matched = users.filter(user => matchesPattern(user, query));
 
     const friends = matched.filter(user => user.relation === "friend");
     const incoming = matched.filter(user => user.relation === "incoming");
     const outgoing = matched.filter(user => user.relation === "outgoing");
     const others = matched.filter(user => user.relation === "none");
 
-    if (
-        friends.length === 0 &&
-        incoming.length === 0 &&
-        outgoing.length === 0 &&
-        others.length === 0
-    ) {
+    if (!matched.length) {
         listEl.appendChild(createEmptyState("Ничего не найдено"));
         return;
     }
 
-    if (friends.length) {
-        friends.forEach(user => {
-            listEl.appendChild(createUserCard(user));
-        });
-    }
+    friends.forEach(user => listEl.appendChild(createUserCard(user)));
 
     if (incoming.length || outgoing.length || others.length) {
         listEl.appendChild(createSectionLabel("Глобальный поиск"));
-
-        incoming.forEach(user => {
-            listEl.appendChild(createUserCard(user));
-        });
-
-        outgoing.forEach(user => {
-            listEl.appendChild(createUserCard(user));
-        });
-
-        others.forEach(user => {
-            listEl.appendChild(createUserCard(user));
-        });
+        incoming.forEach(user => listEl.appendChild(createUserCard(user)));
+        outgoing.forEach(user => listEl.appendChild(createUserCard(user)));
+        others.forEach(user => listEl.appendChild(createUserCard(user)));
     }
 }
 
-function renderCurrentState() {
+async function renderCurrentState() {
     const query = searchValue.trim();
 
     if (query.length > 0) {
-        document.querySelector('.friends-tabs').style.display = 'none';
-        renderSearchList(query);
+        tabsEl.style.display = 'none';
+        const users = await apiSearchUsers(query);
+        renderSearchList(users, query);
         return;
-    } else {
-        document.querySelector('.friends-tabs').style.display = 'flex';
     }
 
+    tabsEl.style.display = 'flex';
+
     if (activeTab === "friends") {
-        renderSimpleList(
-            mockUsers.filter(user => user.relation === "friend"),
-            "У вас пока нет друзей"
-        );
+        const users = await apiGetFriends();
+        renderSimpleList(users, "У вас пока нет друзей");
         return;
     }
 
     if (activeTab === "outgoing") {
-        renderSimpleList(
-            mockUsers.filter(user => user.relation === "outgoing"),
-            "Нет исходящих заявок"
-        );
+        const users = await apiGetOutgoingRequests();
+        renderSimpleList(users, "Нет исходящих заявок");
         return;
     }
 
-    if (activeTab === "incoming") {
-        renderSimpleList(
-            mockUsers.filter(user => user.relation === "incoming"),
-            "Нет входящих заявок"
-        );
-    }
+    const users = await apiGetIncomingRequests();
+    renderSimpleList(users, "Нет входящих заявок");
 }
 
 tabButtons.forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         activeTab = button.dataset.tab;
 
         tabButtons.forEach(btn => btn.classList.remove("friends-tab--active"));
         button.classList.add("friends-tab--active");
 
-        renderCurrentState();
+        await renderCurrentState();
     });
 });
 
-searchInputEl.addEventListener("input", (event) => {
+searchInputEl.addEventListener("input", async (event) => {
     searchValue = event.target.value;
-    renderCurrentState();
+    await renderCurrentState();
 });
 
 const initialActiveButton = document.querySelector(`.friends-tab[data-tab="${activeTab}"]`);
@@ -292,8 +277,7 @@ if (initialActiveButton) {
     initialActiveButton.classList.add("friends-tab--active");
 }
 
-renderCurrentState();
-
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     initSidebarNav({ currentUserId });
+    await renderCurrentState();
 });

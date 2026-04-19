@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 from auth import SESSION_COOKIE_NAME, require_authenticated_user
 from db import get_db
 from services.sessions import create_session, revoke_session_by_token
+from services.friends import get_relationship_status
 from services.users import check_user_exists, create_user, get_user, register_user, verify_user_credentials
 
 router = APIRouter()
@@ -17,8 +18,6 @@ class RegisterUserRequest(BaseModel):
     patronym: str | None = Field(default=None, max_length=40)
     sex: str
     password: str = Field(min_length=8, max_length=256)
-
-
 
     @field_validator("email")
     @classmethod
@@ -152,15 +151,16 @@ async def logout_user(request: Request, response: Response, db=Depends(get_db)):
     return {"ok": True}
 
 
-
-
 @router.get("/me")
 async def get_me(current_user=Depends(require_authenticated_user)):
     return {"user_id": current_user["user_id"]}
 
+
 @router.get("/{user_id}")
-async def get_user_api(user_id: int, db=Depends(get_db), _=Depends(require_authenticated_user)):
+async def get_user_api(user_id: int, db=Depends(get_db), current_user=Depends(require_authenticated_user)):
     user = await get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+
+    user["relation"] = await get_relationship_status(db, current_user["user_id"], user_id)
     return user
