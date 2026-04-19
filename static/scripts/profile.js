@@ -103,25 +103,8 @@ async function loadUser() {
     });
 }
 
-async function logout() {
-    const response = await fetch('/api/users/logout', {
-        method: 'POST'
-    });
-
-    if (response.ok) {
-        window.location.href = '/login';
-    }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     initSidebarNav({ currentUserId });
     setupDetailsModal();
     await loadUser();
-
-    if (isOwner) {
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', logout);
-        }
-    }
 });

@@ -41,12 +41,6 @@
     transform: scale(0.98);
 }
 
-/*.sidebar-btn--active {*/
-/*    background: #2563eb;*/
-/*    color: #fff;*/
-/*    font-weight: 700;*/
-/*}*/
-
 @media (max-width: 1000px) {
     .sidebar {
         display: flex;
