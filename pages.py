@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from auth import get_current_user_optional
+from services.users import get_user_by_nickname
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -38,6 +39,19 @@ async def friends_page(request: Request, current_user=Depends(get_current_user_o
             "active_page": "friends",
         },
     )
+
+
+@router.get("/id@{nickname}", response_class=HTMLResponse)
+async def profile_page_by_nickname(request: Request, nickname: str, current_user=Depends(get_current_user_optional)):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+
+    user = await get_user_by_nickname(request.app.state.pool, nickname)
+    if not user:
+        user = dict()
+        user['id'] = 0
+
+    return RedirectResponse(url=f"/id{user['id']}", status_code=302)
 
 
 @router.get("/id{user_id}", response_class=HTMLResponse)
