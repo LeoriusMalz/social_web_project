@@ -9,6 +9,7 @@ SELECT
     u.sex,
     ms.status_name AS marital_status,
     c.city_name AS city,
+    (u.avatar IS NOT NULL) AS has_avatar,
     (
         SELECT COUNT(*)
         FROM friendships f

@@ -1,0 +1,1 @@
+UPDATE users SET password_hash = $2 WHERE id = $1;

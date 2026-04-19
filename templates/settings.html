@@ -14,9 +14,124 @@
     <main class="settings-shell">
         <section class="settings-card">
             <h1>Настройки</h1>
-            <button id="logout-btn" class="logout-btn" type="button">Выйти</button>
+
+            <div class="avatar-row">
+                <button id="avatar-button" type="button" class="avatar-picker" aria-label="Изменить аватар"></button>
+                <input id="avatar-file" type="file" accept="image/*" hidden>
+                <button id="delete-avatar-btn" class="ghost-danger" type="button" hidden>Удалить</button>
+            </div>
+            <small id="avatar-status" class="field-hint"></small>
+
+            <form id="settings-form" class="settings-form" novalidate>
+                <div class="inline-grid">
+                    <div class="field">
+                        <label for="surname">Фамилия</label>
+                        <input id="surname" class="field-input" type="text" maxlength="30">
+                        <small id="surname-error" class="field-error"></small>
+                    </div>
+                    <div class="field">
+                        <label for="name">Имя</label>
+                        <input id="name" class="field-input" type="text" maxlength="30">
+                        <small id="name-error" class="field-error"></small>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="patronym">Отчество (необязательно)</label>
+                    <input id="patronym" class="field-input" type="text" maxlength="40">
+                    <small id="patronym-error" class="field-error"></small>
+                </div>
+
+                <div class="field field-with-action">
+                    <div>
+                        <label for="nickname">Никнейм</label>
+                        <input id="nickname" class="field-input" type="text" maxlength="20">
+                        <small id="nickname-status" class="field-hint field-error"></small>
+                    </div>
+                    <button id="check-nickname-btn" class="mini-btn" type="button">Проверить</button>
+                </div>
+
+                <div class="field field-with-action">
+                    <div>
+                        <label for="email">Почта</label>
+                        <input id="email" class="field-input" type="email">
+                        <small id="email-status" class="field-hint field-error"></small>
+                    </div>
+                    <button id="check-email-btn" class="mini-btn" type="button">Проверить</button>
+                </div>
+
+                <div class="field field-with-action">
+                    <div>
+                        <label for="phone">Телефон</label>
+                        <input id="phone" class="field-input" type="tel" placeholder="+7 (___) ___-__-__">
+                    </div>
+                    <button id="clear-phone-btn" class="mini-btn mini-btn--muted" type="button">Очистить</button>
+                    <small id="phone-error" class="field-error"></small>
+                </div>
+
+                <div class="field">
+                    <label>Пол</label>
+                    <div class="sex-group">
+                        <label><input type="radio" name="sex" value="М"> Мужской</label>
+                        <label><input type="radio" name="sex" value="Ж"> Женский</label>
+                    </div>
+                    <small id="sex-error" class="field-error"></small>
+                </div>
+
+                <div class="field">
+                    <label for="marital-status">Семейное положение</label>
+                    <select id="marital-status" class="field-input"></select>
+                </div>
+
+                <div class="field field-with-action">
+                    <div class="city-wrap">
+                        <label for="city">Город</label>
+                        <input id="city" class="field-input" type="text" autocomplete="off">
+                        <input id="city-id" type="hidden">
+                        <div id="cities-dropdown" class="cities-dropdown" hidden></div>
+                    </div>
+                    <button id="clear-city-btn" class="mini-btn mini-btn--muted" type="button">Очистить</button>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" class="primary-btn">Сохранить изменения</button>
+                    <button id="change-password-btn" class="secondary-btn" type="button">Изменить пароль</button>
+                    <button id="delete-profile-btn" class="danger-btn" type="button">Удалить профиль</button>
+                    <button id="logout-btn" class="logout-btn" type="button">Выйти</button>
+                </div>
+
+                <p id="result" class="form-message"></p>
+            </form>
         </section>
     </main>
+</div>
+
+<div id="password-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Изменить пароль">
+        <h2>Изменить пароль</h2>
+        <form id="password-form" class="settings-form" novalidate>
+            <div class="field">
+                <label for="old-password">Старый пароль</label>
+                <input id="old-password" class="field-input" type="password" autocomplete="current-password">
+                <small id="old-password-error" class="field-error"></small>
+            </div>
+            <div class="field">
+                <label for="new-password">Новый пароль</label>
+                <input id="new-password" class="field-input" type="password" autocomplete="new-password">
+                <small id="new-password-error" class="field-error"></small>
+            </div>
+            <div class="field">
+                <label for="repeat-new-password">Повторите новый пароль</label>
+                <input id="repeat-new-password" class="field-input" type="password" autocomplete="new-password">
+                <small id="repeat-new-password-error" class="field-error"></small>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="primary-btn">Сменить пароль</button>
+                <button id="close-password-modal" type="button" class="secondary-btn">Отмена</button>
+            </div>
+            <p id="password-result" class="form-message"></p>
+        </form>
+    </div>
 </div>
 
 <script>

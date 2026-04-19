@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from auth import SESSION_COOKIE_NAME, require_authenticated_user
 from db import get_db
 from services.sessions import create_session, revoke_session_by_token
 from services.friends import get_relationship_status
+from services.settings import get_user_avatar
 from services.users import check_user_exists, create_user, get_user, register_user, verify_user_credentials
 
 router = APIRouter()
@@ -156,6 +158,15 @@ async def get_me(current_user=Depends(require_authenticated_user)):
     return {"user_id": current_user["user_id"]}
 
 
+@router.get("/{user_id}/avatar")
+async def get_user_avatar_api(user_id: int, db=Depends(get_db), current_user=Depends(require_authenticated_user)):
+    avatar = await get_user_avatar(db, user_id)
+    if not avatar:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Аватар не найден")
+
+    return StreamingResponse(iter([avatar]), media_type="image/*")
+
+
 @router.get("/{user_id}")
 async def get_user_api(user_id: int, db=Depends(get_db), current_user=Depends(require_authenticated_user)):
     user = await get_user(db, user_id)
@@ -163,4 +174,5 @@ async def get_user_api(user_id: int, db=Depends(get_db), current_user=Depends(re
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
 
     user["relation"] = await get_relationship_status(db, current_user["user_id"], user_id)
+    user["avatar_url"] = f"/api/users/{user_id}/avatar" if user.get("has_avatar") else None
     return user

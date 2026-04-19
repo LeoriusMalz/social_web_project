@@ -5,7 +5,10 @@ CREATE TABLE IF NOT EXISTS marital_statuses (
 
 CREATE TABLE IF NOT EXISTS cities (
     city_id SERIAL PRIMARY KEY,
-    city_name TEXT NOT NULL
+    region_name TEXT NOT NULL,
+    city_name TEXT NOT NULL,
+
+    UNIQUE(city_name, region_name)
 );
 
 CREATE TABLE IF NOT EXISTS request_statuses (
@@ -30,7 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     surname VARCHAR(30) NOT NULL DEFAULT 'Surname',
     patronym VARCHAR(40) DEFAULT NULL,
     nickname VARCHAR(20) UNIQUE NOT NULL,
-    phone VARCHAR(16) UNIQUE DEFAULT NULL,
+    phone VARCHAR(18) UNIQUE DEFAULT NULL,
     email TEXT UNIQUE NOT NULL,
     sex CHAR(1) NOT NULL,
     marital_status_id INTEGER DEFAULT NULL,
@@ -38,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL,
     password_hash TEXT NOT NULL,
+    avatar BYTEA DEFAULT NULL,
 
     FOREIGN KEY (marital_status_id) REFERENCES marital_statuses (status_id),
     FOREIGN KEY (city_id) REFERENCES cities (city_id)
@@ -142,3 +146,7 @@ CREATE INDEX IF NOT EXISTS user_sessions_user_id_idx
 
 CREATE INDEX IF NOT EXISTS user_sessions_expires_at_idx
     ON user_sessions (expires_at);
+
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS avatar BYTEA;
