@@ -16,7 +16,9 @@ const listEl = document.getElementById("friends-list");
 const searchInputEl = document.getElementById("friends-search-input");
 const tabButtons = document.querySelectorAll(".friends-tab");
 
-let activeTab = "friends";
+const initialTab = new URLSearchParams(window.location.search).get("tab");
+const allowedTabs = new Set(["friends", "outgoing", "incoming"]);
+let activeTab = allowedTabs.has(initialTab) ? initialTab : "friends";
 let searchValue = "";
 
 
@@ -284,4 +286,14 @@ searchInputEl.addEventListener("input", (event) => {
     renderCurrentState();
 });
 
+const initialActiveButton = document.querySelector(`.friends-tab[data-tab="${activeTab}"]`);
+if (initialActiveButton) {
+    tabButtons.forEach(btn => btn.classList.remove("friends-tab--active"));
+    initialActiveButton.classList.add("friends-tab--active");
+}
+
 renderCurrentState();
+
+document.addEventListener("DOMContentLoaded", () => {
+    initSidebarNav({ currentUserId });
+});

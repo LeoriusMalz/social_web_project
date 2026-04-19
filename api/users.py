@@ -152,6 +152,12 @@ async def logout_user(request: Request, response: Response, db=Depends(get_db)):
     return {"ok": True}
 
 
+
+
+@router.get("/me")
+async def get_me(current_user=Depends(require_authenticated_user)):
+    return {"user_id": current_user["user_id"]}
+
 @router.get("/{user_id}")
 async def get_user_api(user_id: int, db=Depends(get_db), _=Depends(require_authenticated_user)):
     user = await get_user(db, user_id)

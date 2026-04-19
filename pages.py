@@ -3,8 +3,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from auth import get_current_user_optional
+
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
+
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, current_user=Depends(get_current_user_optional)):
@@ -27,7 +29,15 @@ async def friends_page(request: Request, current_user=Depends(get_current_user_o
     if not current_user:
         return RedirectResponse(url="/login", status_code=302)
 
-    return templates.TemplateResponse(request, "friends.html", {"request": request})
+    return templates.TemplateResponse(
+        request,
+        "friends.html",
+        {
+            "request": request,
+            "current_user_id": current_user["user_id"],
+            "active_page": "friends",
+        },
+    )
 
 
 @router.get("/id{user_id}", response_class=HTMLResponse)
@@ -40,5 +50,22 @@ async def profile_page(request: Request, user_id: int, current_user=Depends(get_
         "user_id": user_id,
         "is_owner": current_user["user_id"] == user_id,
         "current_user_id": current_user["user_id"],
+        "active_page": "profile",
     }
     return templates.TemplateResponse(request, "profile.html", context)
+
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, current_user=Depends(get_current_user_optional)):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "request": request,
+            "current_user_id": current_user["user_id"],
+            "active_page": "settings",
+        },
+    )

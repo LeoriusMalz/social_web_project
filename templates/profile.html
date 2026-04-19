@@ -4,27 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль</title>
-    <link rel="stylesheet" href="/static/auth.css">
+    <link rel="stylesheet" href="/static/sidebar.css">
+    <link rel="stylesheet" href="/static/profile.css">
 </head>
 <body>
-<div class="container">
-    <div class="auth-card">
-        <h1 class="auth-title">Профиль</h1>
+<div class="app-layout">
+    {% include '_sidebar.html' %}
 
-        <p id="nickname"></p>
-        <p id="email"></p>
+    <main class="profile-shell">
+        <section class="profile-card">
+            <div id="avatar" class="profile-avatar"></div>
 
-        {% if is_owner %}
-            <button type="button" id="logout-btn" class="auth-link-button">Выйти</button>
-        {% endif %}
+            <h1 id="full-name" class="profile-name">Загрузка...</h1>
+
+            <div class="profile-btn-block">
+                <button id="nickname-btn" class="nickname-btn" type="button" title="Скопировать ссылку на профиль">
+                    @nickname
+                </button>
+
+                <button id="more-btn" class="more-btn" type="button">подробнее...</button>
+            </div>
+
+            <div class="stats-block">
+                <button class="stat-row stat-row--clickable" id="friends-stat-btn" type="button">
+                    <span>👥</span>
+                    <b><span id="friends-count">0 друзей</span></b>
+                </button>
+                <button class="stat-row stat-row--clickable" id="followers-stat-btn" type="button">
+                    <span>🔔</span>
+                    <b><span id="followers-count">0 подписчиков</span></b>
+                </button>
+            </div>
+
+            {% if is_owner %}
+                <button type="button" id="logout-btn" class="logout-inline-btn">Выйти</button>
+            {% endif %}
+        </section>
+    </main>
+</div>
+
+<div id="details-overlay" class="details-overlay" aria-hidden="true">
+    <div class="details-modal" role="dialog" aria-modal="true" aria-label="Дополнительная информация">
+        <h2>Информация</h2>
+        <div id="details-list" class="details-list"></div>
     </div>
 </div>
 
 <script>
     const userId = {{ user_id }};
+    const currentUserId = {{ current_user_id }};
     const isOwner = {{ 'true' if is_owner else 'false' }};
 </script>
 
+<script src="/static/nav.js"></script>
 <script src="/static/profile.js"></script>
 </body>
 </html>

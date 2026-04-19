@@ -4,36 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Друзья</title>
+    <link rel="stylesheet" href="/static/sidebar.css">
     <link rel="stylesheet" href="/static/friends.css">
 </head>
 <body>
-    <div class="container">
-        <div class="friends-page">
-            <div class="friends-search-block">
-                <input
-                    id="friends-search-input"
-                    class="friends-search-input"
-                    type="text"
-                    placeholder="Поиск людей по имени и фамилии"
-                    autocomplete="off">
-            </div>
+    <div class="app-layout">
+        {% include '_sidebar.html' %}
 
-            <div class="friends-tabs">
-                <button class="friends-tab friends-tab--active" data-tab="friends">
-                    Мои друзья
-                </button>
-                <button class="friends-tab" data-tab="outgoing" title="Исходящие заявки">
-                    ↗
-                </button>
-                <button class="friends-tab" data-tab="incoming" title="Входящие заявки">
-                    ↘
-                </button>
-            </div>
+        <div class="container">
+            <div class="friends-page">
+                <div class="friends-search-block">
+                    <input
+                        id="friends-search-input"
+                        class="friends-search-input"
+                        type="text"
+                        placeholder="Поиск людей по имени и фамилии"
+                        autocomplete="off">
+                </div>
 
-            <div id="friends-list" class="friends-list"></div>
+                <div class="friends-tabs">
+                    <button class="friends-tab friends-tab--active" data-tab="friends">
+                        Мои друзья
+                    </button>
+                    <button class="friends-tab" data-tab="outgoing" title="Исходящие заявки">
+                        ↗
+                    </button>
+                    <button class="friends-tab" data-tab="incoming" title="Входящие заявки">
+                        ↘
+                    </button>
+                </div>
+
+                <div id="friends-list" class="friends-list"></div>
+            </div>
         </div>
     </div>
 
+    <script>
+        const currentUserId = {{ current_user_id }};
+    </script>
+    <script src="/static/nav.js"></script>
     <script src="/static/friends.js"></script>
 </body>
 </html>

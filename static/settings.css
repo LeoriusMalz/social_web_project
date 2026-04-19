@@ -1,0 +1,49 @@
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f4f6;
+}
+
+.settings-shell {
+    width: min(36vw, 640px);
+    min-width: 340px;
+    max-width: 640px;
+    min-height: 100vh;
+    margin: 0 auto;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    padding: 20px 14px;
+}
+
+.settings-card {
+    width: 100%;
+    border-radius: 24px;
+    background: #fff;
+    padding: 26px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.settings-card h1 { margin-top: 0; }
+
+.logout-btn {
+    border: none;
+    border-radius: 12px;
+    background: #ef4444;
+    color: #fff;
+    font-weight: 700;
+    padding: 10px 16px;
+    cursor: pointer;
+}
+
+@media (max-width: 1000px) {
+
+    .settings-shell {
+        width: min(96vw, 640px);
+        min-width: 0;
+        min-height: auto;
+        padding-top: 14px;
+    }
+}
