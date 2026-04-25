@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS messages (
     chat_id INTEGER NOT NULL,
     sender_id INTEGER NOT NULL,
     content TEXT NOT NULL,
+    replay_msg_id INTEGER DEFAULT NULL,
     sent_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT NULL,
     deleted_at TIMESTAMP DEFAULT NULL,
