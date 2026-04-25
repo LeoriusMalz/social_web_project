@@ -83,3 +83,19 @@ async def settings_page(request: Request, current_user=Depends(get_current_user_
             "active_page": "settings",
         },
     )
+
+
+@router.get("/messages", response_class=HTMLResponse)
+async def messages_page(request: Request, current_user=Depends(get_current_user_optional)):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+
+    return templates.TemplateResponse(
+        request,
+        "messages.html",
+        {
+            "request": request,
+            "current_user_id": current_user["user_id"],
+            "active_page": "messages",
+        },
+    )

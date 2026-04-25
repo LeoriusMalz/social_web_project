@@ -111,7 +111,9 @@ CREATE TABLE IF NOT EXISTS messages (
     deleted_by INTEGER DEFAULT NULL,
 
     CHECK(LENGTH(content) > 0),
-    FOREIGN KEY (chat_id) REFERENCES chats (chat_id)
+    FOREIGN KEY (chat_id) REFERENCES chats (chat_id),
+    FOREIGN KEY (sender_id) REFERENCES users (id),
+    FOREIGN KEY (reply_msg_id) REFERENCES messages (msg_id)
 );
 
 CREATE TABLE IF NOT EXISTS message_reads (
@@ -122,6 +124,21 @@ CREATE TABLE IF NOT EXISTS message_reads (
     FOREIGN KEY (msg_id) REFERENCES messages (msg_id),
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS message_reads_unique_idx
+    ON message_reads (msg_id, user_id);
+
+CREATE INDEX IF NOT EXISTS participation_user_chat_active_idx
+    ON participation (user_id, chat_id)
+    WHERE left_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS messages_chat_id_msg_id_idx
+    ON messages (chat_id, msg_id DESC)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS messages_chat_sent_at_idx
+    ON messages (chat_id, sent_at DESC)
+    WHERE deleted_at IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_nickname_lower_unique_idx
     ON users (LOWER(nickname));

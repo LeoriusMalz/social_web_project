@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сообщения</title>
+    <link rel="stylesheet" href="/static/styles/sidebar.css">
+    <link rel="stylesheet" href="/static/styles/messages.css">
+</head>
+<body>
+<div class="app-layout">
+    {% include '_sidebar.html' %}
+
+    <div class="container">
+        <div class="messages-page">
+            <section id="dialogs-view" class="dialogs-view">
+                <div class="messages-search-row">
+                    <button class="create-chat-btn" disabled title="Создание бесед скоро появится">+</button>
+                    <input id="messages-search-input" class="messages-search-input" type="text" placeholder="Поиск диалогов и друзей" autocomplete="off">
+                </div>
+                <div id="search-results" class="search-results hidden"></div>
+                <div id="dialogs-list" class="dialogs-list"></div>
+            </section>
+
+            <section id="chat-view" class="chat-view hidden">
+                <div id="chat-header" class="chat-header"></div>
+                <div id="chat-list" class="chat-list"></div>
+                <div id="compose-context" class="compose-context hidden"></div>
+                <div class="compose-box">
+                    <textarea id="compose-input" class="compose-input" rows="1" placeholder="Напишите сообщение"></textarea>
+                    <button id="send-btn" class="send-btn hidden" title="Отправить">↑</button>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+    const currentUserId = {{ current_user_id }};
+</script>
+<script src="/static/scripts/sidebar.js"></script>
+<script src="/static/scripts/messages.js"></script>
+</body>
+</html>

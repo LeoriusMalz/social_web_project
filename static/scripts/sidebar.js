@@ -48,7 +48,7 @@ function initSidebarNav(options = {}) {
             }
 
             if (route === 'messages') {
-                console.log('Раздел сообщений будет добавлен позже');
+                window.location.href = '/messages';
             }
         });
     });
