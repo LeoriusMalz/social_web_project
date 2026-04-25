@@ -5,6 +5,7 @@ const searchInputEl = document.getElementById('messages-search-input');
 const searchResultsEl = document.getElementById('search-results');
 const chatHeaderEl = document.getElementById('chat-header');
 const chatListEl = document.getElementById('chat-list');
+const jumpToBottomBtnEl = document.getElementById('jump-to-bottom-btn');
 const composeInputEl = document.getElementById('compose-input');
 const sendBtnEl = document.getElementById('send-btn');
 const composeContextEl = document.getElementById('compose-context');
@@ -20,6 +21,8 @@ let messageBeforeId = null;
 let messageAfterId = null;
 let loadingOlder = false;
 let loadingNewer = false;
+let reachedHistoryStart = false;
+let newMessagesBelow = 0;
 let composeMode = null; // {type:'edit'|'reply', message}
 let lastReadUptoByChat = new Map();
 let wsRefreshTimer = null;
@@ -177,6 +180,8 @@ async function openChat(chatId) {
   currentChat = info;
   messageBeforeId = null;
   messageAfterId = null;
+  reachedHistoryStart = false;
+  newMessagesBelow = 0;
 
   dialogsViewEl.classList.add('hidden');
   chatViewEl.classList.remove('hidden');
@@ -199,29 +204,38 @@ async function openChat(chatId) {
 
 function closeChat() {
   currentChat = null;
+  newMessagesBelow = 0;
   chatViewEl.classList.add('hidden');
   dialogsViewEl.classList.remove('hidden');
+  updateJumpToBottomButton();
   loadDialogs(true);
 }
 
 async function loadInitialMessages(chatId, firstUnreadId) {
   if (firstUnreadId && firstUnreadId > 1) {
     const r = await api(`/api/messages/dialogs/${chatId}/messages?after_id=${firstUnreadId - 1}&limit=20`);
-    return r.json();
+    const data = await r.json();
+    return { ...data, items: toDatePack(data.items, 'oldest') };
   }
   const r = await api(`/api/messages/dialogs/${chatId}/messages?limit=20`);
-  return r.json();
+  const data = await r.json();
+  return { ...data, items: toDatePack(data.items, 'latest') };
 }
 
 async function fillChatViewport(chatId) {
   // Если новых сообщений мало, добираем историю сверху, чтобы экран был заполнен.
-  while (chatListEl.scrollHeight <= chatListEl.clientHeight + 8 && messageBeforeId) {
+  let fillAttempts = 0;
+  while (chatListEl.scrollHeight <= chatListEl.clientHeight + 8 && messageBeforeId && !reachedHistoryStart && fillAttempts < 4) {
+    fillAttempts += 1;
     const r = await api(`/api/messages/dialogs/${chatId}/messages?before_id=${messageBeforeId}&limit=20`);
     if (!r.ok) {
       return;
     }
     const data = await r.json();
-    if (!data.items.length) {
+    const pack = toDatePack(data.items, 'latest');
+    if (!pack.length) {
+      reachedHistoryStart = true;
+      messageBeforeId = null;
       return;
     }
 
@@ -229,7 +243,7 @@ async function fillChatViewport(chatId) {
     const frag = document.createDocumentFragment();
     let prevDate = null;
     const firstUnread = currentChat?.first_unread_msg_id || null;
-    data.items.forEach((m) => {
+    pack.forEach((m) => {
       const currentDate = new Date(m.sent_at).toDateString();
       if (currentDate !== prevDate) {
         const dateEl = document.createElement('div');
@@ -247,7 +261,7 @@ async function fillChatViewport(chatId) {
       frag.appendChild(createMessageEl(m));
     });
     chatListEl.prepend(frag);
-    messageBeforeId = data.items[0].msg_id;
+    messageBeforeId = pack[0].msg_id;
     chatListEl.scrollTop = chatListEl.scrollHeight - previousHeight + chatListEl.scrollTop;
   }
 }
@@ -258,6 +272,70 @@ function dateSeparatorText(date) {
   return d.getFullYear() === now.getFullYear()
     ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
     : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function sameDay(a, b) {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
+function toDatePack(items, mode = 'latest') {
+  if (!items.length) return [];
+  const anchor = mode === 'oldest' ? items[0].sent_at : items[items.length - 1].sent_at;
+  const sameDateItems = items.filter((m) => sameDay(m.sent_at, anchor));
+  if (mode === 'oldest') return sameDateItems.slice(0, 20);
+  return sameDateItems.slice(-20);
+}
+
+function isNearBottom() {
+  const threshold = 36;
+  return chatListEl.scrollHeight - chatListEl.scrollTop - chatListEl.clientHeight <= threshold;
+}
+
+function resetNewMessagesBelow() {
+  newMessagesBelow = 0;
+  updateJumpToBottomButton();
+}
+
+function updateJumpToBottomButton() {
+  if (!currentChat) {
+    jumpToBottomBtnEl.classList.add('hidden');
+    return;
+  }
+  const show = !isNearBottom() || newMessagesBelow > 0;
+  if (!show) {
+    jumpToBottomBtnEl.classList.add('hidden');
+    jumpToBottomBtnEl.textContent = '↓';
+    return;
+  }
+  jumpToBottomBtnEl.classList.remove('hidden');
+  jumpToBottomBtnEl.textContent = newMessagesBelow > 0 ? String(newMessagesBelow) : '↓';
+}
+
+function normalizeDateSeparators() {
+  const children = [...chatListEl.children];
+  children.forEach((node, idx) => {
+    if (!node.classList || !node.classList.contains('date-separator')) return;
+
+    let prevMsgDate = null;
+    let nextMsgDate = null;
+
+    for (let i = idx - 1; i >= 0; i -= 1) {
+      if (children[i].classList?.contains('message-item')) {
+        prevMsgDate = new Date(children[i].dataset.sentAt).toDateString();
+        break;
+      }
+    }
+    for (let i = idx + 1; i < children.length; i += 1) {
+      if (children[i].classList?.contains('message-item')) {
+        nextMsgDate = new Date(children[i].dataset.sentAt).toDateString();
+        break;
+      }
+    }
+
+    if (!nextMsgDate || prevMsgDate === nextMsgDate) {
+      node.remove();
+    }
+  });
 }
 
 function renderMessages(items, replace = false, firstUnreadId = null) {
@@ -290,10 +368,12 @@ function renderMessages(items, replace = false, firstUnreadId = null) {
   });
 
   chatListEl.appendChild(frag);
+  normalizeDateSeparators();
   messageBeforeId = Number(chatListEl.querySelector('.message-item')?.dataset.msgId || messageBeforeId);
   messageAfterId = items[items.length - 1]?.msg_id || messageAfterId;
   setTimeout(() => {
     chatListEl.scrollTop = chatListEl.scrollHeight;
+    resetNewMessagesBelow();
     markVisibleAsRead();
   }, 0);
 }
@@ -303,6 +383,7 @@ function createMessageEl(m) {
   const el = document.createElement('div');
   el.className = `message-item ${own ? 'own-message' : 'foreign-message'}`;
   el.dataset.msgId = m.msg_id;
+  el.dataset.sentAt = m.sent_at;
 
   const av = m.sender_has_avatar ? `<img src="/api/users/${m.sender_id}/avatar" alt="">` : escapeHtml(initials({name:m.sender_name, surname:m.sender_surname}));
   const readIndicator = own ? (m.read_by_anyone ? '✓✓' : '✓') : '';
@@ -352,6 +433,42 @@ function createMessageEl(m) {
   });
 
   return el;
+}
+
+function appendMessages(items, firstUnreadId = null) {
+  if (!items.length) return;
+
+  const frag = document.createDocumentFragment();
+  const lastRendered = chatListEl.querySelector('.message-item:last-of-type');
+  let prevDate = lastRendered ? new Date(lastRendered.dataset.sentAt).toDateString() : null;
+
+  items.forEach((m) => {
+    if (chatListEl.querySelector(`.message-item[data-msg-id="${m.msg_id}"]`)) {
+      return;
+    }
+    const currentDate = new Date(m.sent_at).toDateString();
+    if (currentDate !== prevDate) {
+      const dateEl = document.createElement('div');
+      dateEl.className = 'date-separator';
+      dateEl.textContent = dateSeparatorText(m.sent_at);
+      frag.appendChild(dateEl);
+      prevDate = currentDate;
+    }
+
+    if (firstUnreadId && m.msg_id === firstUnreadId) {
+      const unreadEl = document.createElement('div');
+      unreadEl.className = 'new-separator';
+      unreadEl.textContent = 'Новые сообщения';
+      frag.appendChild(unreadEl);
+    }
+
+    frag.appendChild(createMessageEl(m));
+  });
+
+  if (!frag.childNodes.length) return;
+  chatListEl.appendChild(frag);
+  normalizeDateSeparators();
+  messageAfterId = items[items.length - 1]?.msg_id || messageAfterId;
 }
 
 async function handleDeleteMessage(message) {
@@ -437,23 +554,44 @@ async function reloadCurrentChat() {
   const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/messages?limit=50`);
   if (!r.ok) return;
   const batch = await r.json();
-  renderMessages(batch.items, true, info.first_unread_msg_id);
+  reachedHistoryStart = false;
+  renderMessages(toDatePack(batch.items, 'latest'), true, info.first_unread_msg_id);
+  await fillChatViewport(currentChat.chat_id);
   await loadDialogs(true);
 }
 
+async function loadNewMessages() {
+  if (!currentChat || !messageAfterId) return;
+  const wasNearBottom = isNearBottom();
+  const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/messages?after_id=${messageAfterId}&limit=50`);
+  if (!r.ok) return;
+  const data = await r.json();
+  if (!data.items.length) return;
+  appendMessages(data.items, currentChat.first_unread_msg_id);
+  if (wasNearBottom) {
+    chatListEl.scrollTop = chatListEl.scrollHeight;
+    resetNewMessagesBelow();
+    await markVisibleAsRead();
+    return;
+  }
+  newMessagesBelow += data.items.filter((m) => m.sender_id !== currentUserId).length;
+  updateJumpToBottomButton();
+}
+
 async function loadOlderMessages() {
-  if (loadingOlder || !currentChat || !messageBeforeId) return;
+  if (loadingOlder || !currentChat || !messageBeforeId || reachedHistoryStart) return;
   loadingOlder = true;
   const previousHeight = chatListEl.scrollHeight;
   const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/messages?before_id=${messageBeforeId}&limit=20`);
   if (r.ok) {
     const data = await r.json();
-    if (data.items.length) {
+    const pack = toDatePack(data.items, 'latest');
+    if (pack.length) {
       const oldScroll = chatListEl.scrollTop;
       const firstUnread = currentChat?.first_unread_msg_id || null;
       const frag = document.createDocumentFragment();
       let prevDate = null;
-      data.items.forEach((m) => {
+      pack.forEach((m) => {
         const currentDate = new Date(m.sent_at).toDateString();
         if (currentDate !== prevDate) {
           const dateEl = document.createElement('div');
@@ -471,8 +609,12 @@ async function loadOlderMessages() {
         frag.appendChild(createMessageEl(m));
       });
       chatListEl.prepend(frag);
-      messageBeforeId = data.items[0].msg_id;
+      normalizeDateSeparators();
+      messageBeforeId = pack[0].msg_id;
       chatListEl.scrollTop = chatListEl.scrollHeight - previousHeight + oldScroll;
+    } else {
+      reachedHistoryStart = true;
+      messageBeforeId = null;
     }
   }
   loadingOlder = false;
@@ -545,7 +687,11 @@ function initWebSocket() {
     wsRefreshTimer = setTimeout(async () => {
       await loadDialogs(true);
       if (currentChat && payload.chat_id === currentChat.chat_id) {
-        await reloadCurrentChat();
+        if (payload.type === 'message:new' && messageAfterId) {
+          await loadNewMessages();
+        } else {
+          await reloadCurrentChat();
+        }
       }
     }, 80);
   };
@@ -569,6 +715,17 @@ dialogsListEl.addEventListener('scroll', async () => {
 
 chatListEl.addEventListener('scroll', async () => {
   if (chatListEl.scrollTop <= 30) await loadOlderMessages();
+  if (isNearBottom()) {
+    resetNewMessagesBelow();
+  } else {
+    updateJumpToBottomButton();
+  }
+  await markVisibleAsRead();
+});
+
+jumpToBottomBtnEl.addEventListener('click', async () => {
+  chatListEl.scrollTo({ top: chatListEl.scrollHeight, behavior: 'smooth' });
+  resetNewMessagesBelow();
   await markVisibleAsRead();
 });
 

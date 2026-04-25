@@ -32,6 +32,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
 }
 
 .hidden {
@@ -228,6 +229,23 @@ body {
     gap: 4px;
 }
 
+.jump-to-bottom-btn {
+    position: absolute;
+    right: 14px;
+    bottom: 74px;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+    z-index: 5;
+}
+
 .message-item {
     display: flex;
     gap: 8px;
@@ -290,11 +308,17 @@ body {
 }
 
 .message-actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: #f1f5f9;
     border-radius: 8px;
     cursor: pointer;
     padding: 3px 6px;
+    font-size: 10px;
+    height: 23px;
+    width: 23px;
 }
 
 .message-reply {
