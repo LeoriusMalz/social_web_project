@@ -3,7 +3,8 @@ SELECT
     u.name,
     u.surname,
     u.patronym,
-    u.nickname
+    u.nickname,
+    (u.avatar IS NOT NULL) AS has_avatar
 FROM requests r
 JOIN users u ON u.id = r.from_user_id
 WHERE r.to_user_id = $1

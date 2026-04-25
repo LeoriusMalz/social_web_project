@@ -3,7 +3,8 @@ SELECT
     u.name,
     u.surname,
     u.patronym,
-    u.nickname
+    u.nickname,
+    (u.avatar IS NOT NULL) AS has_avatar
 FROM friendships f
 JOIN users u
   ON u.id = CASE WHEN f.user1_id = $1 THEN f.user2_id ELSE f.user1_id END

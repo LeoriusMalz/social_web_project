@@ -9,13 +9,11 @@ REJECTED = 3
 
 get_active_friendship_sql = load_sql("friends/get_active_friendship.sql")
 get_pending_request_sql = load_sql("friends/get_pending_request.sql")
-list_friends_sql = load_sql("friends/list_friends.sql")
 list_incoming_requests_sql = load_sql("friends/list_incoming_requests.sql")
 list_outgoing_requests_sql = load_sql("friends/list_outgoing_requests.sql")
 search_users_with_relationship_sql = load_sql("friends/search_users_with_relationship.sql")
 create_request_sql = load_sql("friends/create_request.sql")
-update_outgoing_request_status_sql = load_sql("friends/update_outgoing_request_status.sql")
-update_incoming_request_status_sql = load_sql("friends/update_incoming_request_status.sql")
+update_request_status_sql = load_sql("friends/update_request_status.sql")
 upsert_friendship_sql = load_sql("friends/upsert_friendship.sql")
 remove_friendship_sql = load_sql("friends/remove_friendship.sql")
 list_user_friends_sql = load_sql("friends/list_user_friends.sql")
@@ -45,8 +43,8 @@ async def get_relationship_status(conn, current_user_id: int, target_user_id: in
 
 
 async def list_friends(conn, current_user_id: int):
-    rows = await conn.fetch(list_friends_sql, current_user_id)
-    return [dict(row) for row in rows]
+    rows = await conn.fetch(list_user_friends_sql, current_user_id)
+    return [{**dict(row), "relation": "friend"} for row in rows]
 
 
 async def list_incoming_requests(conn, current_user_id: int):
@@ -83,7 +81,7 @@ async def send_friend_request(conn, from_user_id: int, to_user_id: int):
 
 async def cancel_outgoing_request(conn, from_user_id: int, to_user_id: int):
     row = await conn.fetchrow(
-        update_outgoing_request_status_sql,
+        update_request_status_sql,
         from_user_id,
         to_user_id,
         CANCELLED,
@@ -94,7 +92,7 @@ async def cancel_outgoing_request(conn, from_user_id: int, to_user_id: int):
 
 async def reject_incoming_request(conn, current_user_id: int, from_user_id: int):
     row = await conn.fetchrow(
-        update_incoming_request_status_sql,
+        update_request_status_sql,
         from_user_id,
         current_user_id,
         REJECTED,
@@ -105,7 +103,7 @@ async def reject_incoming_request(conn, current_user_id: int, from_user_id: int)
 
 async def accept_incoming_request(conn, current_user_id: int, from_user_id: int):
     request_row = await conn.fetchrow(
-        update_incoming_request_status_sql,
+        update_request_status_sql,
         from_user_id,
         current_user_id,
         ACCEPTED,

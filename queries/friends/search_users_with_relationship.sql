@@ -4,6 +4,7 @@ SELECT
     u.surname,
     u.patronym,
     u.nickname,
+    (u.avatar IS NOT NULL) AS has_avatar,
     CASE
         WHEN f.user1_id IS NOT NULL THEN 'friend'
         WHEN ro.request_id IS NOT NULL THEN 'outgoing'

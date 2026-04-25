@@ -4,6 +4,7 @@ SELECT
     u.surname,
     u.patronym,
     u.nickname,
+    (u.avatar IS NOT NULL) AS has_avatar,
     'incoming' AS relation,
     r.request_id
 FROM requests r

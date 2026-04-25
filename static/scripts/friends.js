@@ -16,6 +16,10 @@ function getInitials(user) {
     return `${user.name?.[0] ?? ""}${user.surname?.[0] ?? ""}`.toUpperCase();
 }
 
+function getAvatarUrl(user) {
+    return user.has_avatar ? `/api/users/${user.id}/avatar` : null;
+}
+
 function matchesPattern(user, query) {
     const normalized = query.trim().toLowerCase();
     if (!normalized) {
@@ -143,7 +147,16 @@ function createUserCard(user) {
 
     const avatar = document.createElement("div");
     avatar.className = "friend-avatar";
-    avatar.textContent = getInitials(user);
+
+    const avatarUrl = getAvatarUrl(user);
+    if (avatarUrl) {
+        const image = document.createElement("img");
+        image.src = avatarUrl;
+        image.alt = getFullName(user);
+        avatar.appendChild(image);
+    } else {
+        avatar.textContent = getInitials(user);
+    }
 
     const info = document.createElement("div");
     info.className = "friend-info";
