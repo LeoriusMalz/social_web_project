@@ -124,6 +124,10 @@ async function openPeopleOverlay(type) {
     overlay.setAttribute('aria-hidden', 'false');
 }
 
+function openDialogWithUser(targetUserId) {
+    window.location.href = `/messages?chat_with=${targetUserId}`;
+}
+
 function relationButton(label, className, onClick) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -183,7 +187,14 @@ async function updateRelationControls() {
         return;
     }
 
-    relationWrap.appendChild(relationButton('В друзьях', 'relation-btn relation-btn--friend', async () => {
+    const row = document.createElement('div');
+    row.className = 'relation-row';
+
+    row.appendChild(relationButton('Написать сообщение', 'relation-btn relation-btn--message', () => {
+        openDialogWithUser(userId);
+    }));
+
+    row.appendChild(relationButton('В друзьях', 'relation-btn relation-btn--friend', async () => {
         const ok = window.confirm('Удалить пользователя из друзей?');
         if (!ok) {
             return;
@@ -192,6 +203,8 @@ async function updateRelationControls() {
         await updateRelationControls();
         await loadUser();
     }));
+
+    relationWrap.appendChild(row);
 }
 
 async function loadUser() {
@@ -205,7 +218,21 @@ async function loadUser() {
     const data = await response.json();
 
     if (!response.ok) {
-        document.body.innerHTML = '<h2>Пользователь не найден</h2>';
+        const card = document.querySelector('.profile-card');
+        const controls = ['nickname-btn', 'more-btn', 'relation-controls', 'friends-stat-btn', 'followers-stat-btn', 'stats-block'];
+
+        card.classList.add('profile-card--not-found');
+        document.getElementById('full-name').innerText = 'Пользователь не найден';
+        document.getElementById('avatar').classList.add('profile-avatar--not-found');
+        document.getElementById('avatar').textContent = '❔';
+
+        controls.forEach((id) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.style.display = 'none';
+            }
+        });
+
         return;
     }
 

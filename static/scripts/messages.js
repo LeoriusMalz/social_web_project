@@ -134,11 +134,13 @@ async function renderSearch(query) {
     return;
   }
 
+  searchResultsEl.appendChild(createLabel('Диалоги'));
   withDialogs.forEach((u) => searchResultsEl.appendChild(createSearchUser(u)));
   if (onlyFriends.length) {
     searchResultsEl.appendChild(createLabel('Друзья'));
     onlyFriends.forEach((u) => searchResultsEl.appendChild(createSearchUser(u)));
   }
+  searchResultsEl.appendChild(document.createElement('hr'));
 }
 
 function createLabel(text) {
@@ -158,12 +160,12 @@ function createSearchUser(u) {
     if (u.has_dialog) {
       const existing = dialogs.find((d) => d.peer_id === u.id);
       if (existing) {
-        openChat(existing.chat_id);
+        await openChat(existing.chat_id);
         return;
       }
     }
-    await sendMessageToUser(u.id, composeInputEl.value || 'Привет!');
-    composeInputEl.value = '';
+
+    await openOrCreateDialogWithUser(u.id);
   });
   return el;
 }
@@ -515,6 +517,16 @@ function toggleSendButton() {
   else sendBtnEl.classList.add('hidden');
 }
 
+
+async function openOrCreateDialogWithUser(userId) {
+  const r = await api(`/api/messages/dialogs/by-user/${userId}`, { method: 'POST' });
+  if (!r.ok) return;
+  const data = await r.json();
+  if (data.chat_id) {
+    await openChat(data.chat_id);
+  }
+}
+
 function initWebSocket() {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${protocol}://${window.location.host}/api/messages/ws`);
@@ -577,5 +589,12 @@ sendBtnEl.addEventListener('click', async () => sendMessage());
 document.addEventListener('DOMContentLoaded', async () => {
   initSidebarNav({ currentUserId });
   await loadDialogs(true);
+
+  const params = new URLSearchParams(window.location.search);
+  const chatWithUser = Number(params.get('chat_with'));
+  if (chatWithUser > 0) {
+    await openOrCreateDialogWithUser(chatWithUser);
+  }
+
   initWebSocket();
 });

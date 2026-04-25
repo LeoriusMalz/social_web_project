@@ -9,6 +9,14 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
+@router.get("/", response_class=HTMLResponse)
+async def root_page(request: Request, current_user=Depends(get_current_user_optional)):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+
+    return RedirectResponse(url=f"/id{current_user['user_id']}", status_code=302)
+
+
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, current_user=Depends(get_current_user_optional)):
     if current_user:
@@ -58,6 +66,9 @@ async def profile_page_by_nickname(request: Request, nickname: str, current_user
 async def profile_page(request: Request, user_id: int, current_user=Depends(get_current_user_optional)):
     if not current_user:
         return RedirectResponse(url="/login", status_code=302)
+
+    if user_id == 0:
+        return RedirectResponse(url=f"/id{current_user['user_id']}", status_code=302)
 
     context = {
         "request": request,

@@ -262,3 +262,22 @@ body {
         padding-top: 14px;
     }
 }
+
+
+.relation-btn--message {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.profile-card--not-found {
+    display: grid;
+    gap: 18px;
+    justify-items: center;
+    padding-top: 34px;
+    padding-bottom: 34px;
+}
+
+.profile-avatar--not-found {
+    background: #e5e7eb;
+    color: #4b5563;
+}

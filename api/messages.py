@@ -109,6 +109,21 @@ async def get_dialog_messages(
     return {"items": messages}
 
 
+
+
+@router.post("/dialogs/by-user/{target_user_id}")
+async def open_dialog_with_user(
+    target_user_id: int,
+    current_user=Depends(require_authenticated_user),
+    db=Depends(get_db),
+):
+    chat_id = await get_or_create_dialog_chat(db, current_user["user_id"], target_user_id)
+    if not chat_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Диалог можно начать только с другом")
+
+    return {"chat_id": chat_id}
+
+
 @router.post("/dialogs/by-user/{target_user_id}/messages", status_code=status.HTTP_201_CREATED)
 async def send_message_to_user(
     target_user_id: int,
