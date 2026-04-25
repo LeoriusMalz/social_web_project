@@ -6,19 +6,19 @@ function initials(user) {
     return `${user.name?.[0] ?? ''}${user.surname?.[0] ?? ''}`.toUpperCase();
 }
 
-function renderAvatar(user) {
-    const avatarEl = document.getElementById('avatar');
-    avatarEl.innerHTML = '';
-
-    if (user.avatar_url) {
+function renderAvatar(user, avatar) {
+    const userAvatar = user.avatar_url ? user.avatar_url :
+        user.has_avatar ? `/api/users/${user.id}/avatar` : null;
+    if (userAvatar) {
         const image = document.createElement('img');
-        image.src = user.avatar_url;
+        image.src = userAvatar;
         image.alt = 'Аватар';
-        avatarEl.appendChild(image);
-        return;
+        avatar.appendChild(image);
+        return avatar;
     }
 
-    avatarEl.textContent = initials(user);
+    avatar.textContent = initials(user);
+    return avatar;
 }
 
 function renderDetails(user) {
@@ -67,9 +67,10 @@ function createPersonCard(user) {
     button.type = 'button';
     button.className = 'people-card';
 
-    const avatar = document.createElement('div');
+    let avatar = document.createElement('div');
     avatar.className = 'friend-avatar';
-    avatar.textContent = initials(user);
+
+    avatar = renderAvatar(user, avatar);
 
     const content = document.createElement('div');
     content.className = 'friend-info';
@@ -208,7 +209,10 @@ async function loadUser() {
         return;
     }
 
-    renderAvatar(data);
+    let avatarEl = document.getElementById('avatar');
+    avatarEl.innerHTML = '';
+
+    avatarEl = renderAvatar(data, avatarEl);
     document.getElementById('full-name').innerText = fullName(data);
 
     const nicknameButton = document.getElementById('nickname-btn');
