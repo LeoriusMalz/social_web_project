@@ -43,8 +43,12 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     avatar BYTEA DEFAULT NULL,
 
-    FOREIGN KEY (marital_status_id) REFERENCES marital_statuses (status_id),
-    FOREIGN KEY (city_id) REFERENCES cities (city_id)
+    CONSTRAINT users_marital_status_id_fkey
+        FOREIGN KEY (marital_status_id) REFERENCES marital_statuses (status_id)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT users_city_id_fkey
+        FOREIGN KEY (city_id) REFERENCES cities (city_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS requests (
@@ -55,9 +59,15 @@ CREATE TABLE IF NOT EXISTS requests (
     sent_at TIMESTAMP NOT NULL,
     decision_at TIMESTAMP DEFAULT NULL,
 
-    FOREIGN KEY (from_user_id) REFERENCES users (id),
-    FOREIGN KEY (to_user_id) REFERENCES users (id),
-    FOREIGN KEY (request_status_id) REFERENCES request_statuses (status_id)
+    CONSTRAINT requests_from_user_id_fkey
+        FOREIGN KEY (from_user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT requests_to_user_id_fkey
+        FOREIGN KEY (to_user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT requests_request_status_id_fkey
+        FOREIGN KEY (request_status_id) REFERENCES request_statuses (status_id)
+        ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS friendships (
@@ -70,9 +80,15 @@ CREATE TABLE IF NOT EXISTS friendships (
 
     CHECK(user1_id < user2_id),
     PRIMARY KEY (user1_id, user2_id),
-    FOREIGN KEY (user1_id) REFERENCES users (id),
-    FOREIGN KEY (user2_id) REFERENCES users (id),
-    FOREIGN KEY (request_id) REFERENCES requests (request_id)
+    CONSTRAINT friendships_user1_id_fkey
+        FOREIGN KEY (user1_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT friendships_user2_id_fkey
+        FOREIGN KEY (user2_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT friendships_request_id_fkey
+        FOREIGN KEY (request_id) REFERENCES requests (request_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS chats (
@@ -83,7 +99,9 @@ CREATE TABLE IF NOT EXISTS chats (
     created_at TIMESTAMP NOT NULL,
     created_by INTEGER NOT NULL,
 
-    FOREIGN KEY (type_id) REFERENCES chat_types (type_id)
+    CONSTRAINT chats_type_id_fkey
+        FOREIGN KEY (type_id) REFERENCES chat_types (type_id)
+        ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS participation (
@@ -96,9 +114,15 @@ CREATE TABLE IF NOT EXISTS participation (
     left_at TIMESTAMP DEFAULT NULL,
     kicked_by INTEGER DEFAULT NULL,
 
-    FOREIGN KEY (role_id) REFERENCES participant_roles (role_id),
-    FOREIGN KEY (user_id) REFERENCES users (id),
-    FOREIGN KEY (chat_id) REFERENCES chats (chat_id)
+    CONSTRAINT participation_role_id_fkey
+        FOREIGN KEY (role_id) REFERENCES participant_roles (role_id)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT participation_user_id_fkey
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT participation_chat_id_fkey
+        FOREIGN KEY (chat_id) REFERENCES chats (chat_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -114,9 +138,15 @@ CREATE TABLE IF NOT EXISTS messages (
     deleted_by INTEGER DEFAULT NULL,
 
     CHECK(LENGTH(content) > 0),
-    FOREIGN KEY (chat_id) REFERENCES chats (chat_id),
-    FOREIGN KEY (sender_id) REFERENCES users (id),
-    FOREIGN KEY (reply_msg_id) REFERENCES messages (msg_id)
+    CONSTRAINT messages_chat_id_fkey
+        FOREIGN KEY (chat_id) REFERENCES chats (chat_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT messages_sender_id_fkey
+        FOREIGN KEY (sender_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT messages_reply_msg_id_fkey
+        FOREIGN KEY (reply_msg_id) REFERENCES messages (msg_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS message_reads (
@@ -124,8 +154,12 @@ CREATE TABLE IF NOT EXISTS message_reads (
     user_id INTEGER NOT NULL,
     read_at TIMESTAMP NOT NULL,
 
-    FOREIGN KEY (msg_id) REFERENCES messages (msg_id),
-    FOREIGN KEY (user_id) REFERENCES users (id)
+    CONSTRAINT message_reads_msg_id_fkey
+        FOREIGN KEY (msg_id) REFERENCES messages (msg_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT message_reads_user_id_fkey
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS message_reads_unique_idx
@@ -159,7 +193,9 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     user_agent TEXT,
     ip_address TEXT,
 
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT user_sessions_user_id_fkey
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS user_sessions_user_id_idx
@@ -167,21 +203,6 @@ CREATE INDEX IF NOT EXISTS user_sessions_user_id_idx
 
 CREATE INDEX IF NOT EXISTS user_sessions_expires_at_idx
     ON user_sessions (expires_at);
-
-
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS avatar BYTEA;
-
-
-ALTER TABLE chats
-    ADD COLUMN IF NOT EXISTS title VARCHAR(120);
-
-ALTER TABLE chats
-    ADD COLUMN IF NOT EXISTS avatar BYTEA;
-
-
-ALTER TABLE messages
-    ADD COLUMN IF NOT EXISTS is_system BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS posts (
     post_id SERIAL PRIMARY KEY,
@@ -191,7 +212,9 @@ CREATE TABLE IF NOT EXISTS posts (
     file_content BYTEA DEFAULT NULL,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
 
-    FOREIGN KEY (post_by) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT posts_post_by_fkey
+        FOREIGN KEY (post_by) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
     CHECK (NULLIF(BTRIM(COALESCE(text_content, '')), '') IS NOT NULL OR file_content IS NOT NULL)
 );
 
@@ -202,8 +225,12 @@ CREATE TABLE IF NOT EXISTS reactions (
     reacted_at TIMESTAMP NOT NULL DEFAULT NOW(),
     is_liked BOOLEAN NOT NULL,
 
-    FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE,
-    FOREIGN KEY (reaction_by) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT reactions_post_id_fkey
+        FOREIGN KEY (post_id) REFERENCES posts (post_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT reactions_reaction_by_fkey
+        FOREIGN KEY (reaction_by) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
     UNIQUE (post_id, reaction_by)
 );
 
