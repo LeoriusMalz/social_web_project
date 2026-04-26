@@ -15,11 +15,28 @@
         <div class="messages-page">
             <section id="dialogs-view" class="dialogs-view">
                 <div class="messages-search-row">
-                    <button class="create-chat-btn" disabled title="Создание бесед скоро появится">+</button>
+                    <button id="create-chat-btn" class="create-chat-btn" title="Создать беседу">+</button>
                     <input id="messages-search-input" class="messages-search-input" type="text" placeholder="Поиск диалогов и друзей" autocomplete="off">
                 </div>
                 <div id="search-results" class="search-results hidden"></div>
                 <div id="dialogs-list" class="dialogs-list"></div>
+            </section>
+
+            <section id="create-group-view" class="create-group-view hidden">
+                <div class="create-group-header">
+                    <button id="group-create-back-btn" class="back-btn" type="button">✕</button>
+                    <div class="group-avatar-wrap">
+                        <button id="group-avatar-btn" type="button" class="avatar-picker" aria-label="Аватар беседы"></button>
+                        <input id="group-avatar-file" type="file" accept="image/*" hidden>
+                        <button id="group-avatar-delete-btn" class="group-avatar-delete" type="button" hidden>Удалить</button>
+                    </div>
+                    <div class="group-title-wrap">
+                        <input id="group-title-input" class="messages-search-input" type="text" placeholder="Название беседы" maxlength="120">
+                    </div>
+                </div>
+                <input id="group-friends-search-input" class="group-search-input" type="text" placeholder="Поиск друзей" autocomplete="off">
+                <div id="group-friends-list" class="dialogs-list group-friends-list"></div>
+                <button id="create-group-submit-btn" class="create-group-submit-btn" disabled>Создать беседу</button>
             </section>
 
             <section id="chat-view" class="chat-view hidden">
@@ -33,6 +50,28 @@
                 </div>
             </section>
         </div>
+    </div>
+</div>
+
+<div id="chat-info-modal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-card">
+        <div class="chat-info-header">
+            <button id="chat-info-back-btn" class="back-btn" type="button">✕</button>
+            <div class="chat-info-avatar-wrap">
+                <button id="chat-info-avatar" class="avatar-picker chat-info-avatar" type="button"></button>
+                <button id="chat-info-avatar-delete-btn" class="group-avatar-delete" type="button" hidden>Удалить</button>
+            </div>
+            <input id="chat-info-avatar-file" type="file" accept="image/*" hidden>
+            <div class="chat-info-title-input-wrap">
+                <input id="chat-info-title-input" class="messages-search-input hidden" type="text" maxlength="120">
+                <button id="chat-info-title-save-btn" class="chat-title-save-btn hidden" type="button">✓</button>
+            </div>
+            <div id="chat-info-title" class="chat-info-title"></div>
+        </div>
+        <div id="chat-info-count" class="section-label"></div>
+        <button id="leave-chat-btn" class="danger-btn" type="button">Покинуть беседу</button>
+        <button id="add-members-btn" class="primary-btn hidden" type="button">Добавить участников</button>
+        <div id="chat-participants-list" class="dialogs-list"></div>
     </div>
 </div>
 

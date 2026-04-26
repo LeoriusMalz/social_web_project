@@ -9,6 +9,28 @@ const jumpToBottomBtnEl = document.getElementById('jump-to-bottom-btn');
 const composeInputEl = document.getElementById('compose-input');
 const sendBtnEl = document.getElementById('send-btn');
 const composeContextEl = document.getElementById('compose-context');
+const createChatBtnEl = document.getElementById('create-chat-btn');
+const createGroupViewEl = document.getElementById('create-group-view');
+const groupCreateBackBtnEl = document.getElementById('group-create-back-btn');
+const groupAvatarBtnEl = document.getElementById('group-avatar-btn');
+const groupAvatarFileEl = document.getElementById('group-avatar-file');
+const groupAvatarDeleteBtnEl = document.getElementById('group-avatar-delete-btn');
+const groupTitleInputEl = document.getElementById('group-title-input');
+const groupFriendsSearchInputEl = document.getElementById('group-friends-search-input');
+const groupFriendsListEl = document.getElementById('group-friends-list');
+const createGroupSubmitBtnEl = document.getElementById('create-group-submit-btn');
+const chatInfoModalEl = document.getElementById('chat-info-modal');
+const chatInfoBackBtnEl = document.getElementById('chat-info-back-btn');
+const chatInfoAvatarEl = document.getElementById('chat-info-avatar');
+const chatInfoAvatarFileEl = document.getElementById('chat-info-avatar-file');
+const chatInfoAvatarDeleteBtnEl = document.getElementById('chat-info-avatar-delete-btn');
+const chatInfoTitleEl = document.getElementById('chat-info-title');
+const chatInfoTitleInputEl = document.getElementById('chat-info-title-input');
+const chatInfoTitleSaveBtnEl = document.getElementById('chat-info-title-save-btn');
+const chatInfoCountEl = document.getElementById('chat-info-count');
+const leaveChatBtnEl = document.getElementById('leave-chat-btn');
+const addMembersBtnEl = document.getElementById('add-members-btn');
+const chatParticipantsListEl = document.getElementById('chat-participants-list');
 
 let dialogsOffset = 0;
 let dialogsDone = false;
@@ -26,6 +48,14 @@ let newMessagesBelow = 0;
 let composeMode = null; // {type:'edit'|'reply', message}
 let lastReadUptoByChat = new Map();
 let wsRefreshTimer = null;
+let allFriendsCache = [];
+let selectedGroupMemberIds = new Set();
+let groupAvatarFile = null;
+let participantsCache = [];
+let groupBuilderMode = 'create';
+
+const groupAvatarWrapEl = document.querySelector('.group-avatar-wrap');
+const groupTitleWrapEl = document.querySelector('.group-title-wrap');
 
 function fullName(u) { return `${u.surname} ${u.name}`.trim(); }
 function initials(u) { return `${u.name?.[0] || ''}${u.surname?.[0] || ''}`.toUpperCase(); }
@@ -98,9 +128,13 @@ function renderDialogs() {
     const el = document.createElement('div');
     el.className = 'dialog-item';
     el.dataset.chatId = d.chat_id;
-    const name = `${d.peer_surname} ${d.peer_name}`;
-    const avatar = d.peer_has_avatar ? `<img src="/api/users/${d.peer_id}/avatar" alt="${escapeHtml(name)}">` : escapeHtml(initials({name:d.peer_name, surname:d.peer_surname}));
-    const snippet = d.last_sender_id === currentUserId ? `Вы: ${d.last_message}` : d.last_message;
+    const isGroup = Number(d.type_id) === 1;
+    const name = isGroup ? (d.title || 'Без названия') : `${d.peer_surname} ${d.peer_name}`;
+    const avatar = isGroup
+      ? (d.chat_has_avatar ? `<img src="/api/messages/dialogs/${d.chat_id}/avatar" alt="${escapeHtml(name)}">` : escapeHtml((d.title || '?')[0].toUpperCase()))
+      : (d.peer_has_avatar ? `<img src="/api/users/${d.peer_id}/avatar" alt="${escapeHtml(name)}">` : escapeHtml(initials({name:d.peer_name, surname:d.peer_surname})));
+    const senderPrefix = isGroup && d.last_sender_id !== currentUserId ? `${(d.sender_name || '').trim()} ${(d.sender_surname || '').trim().slice(0,1)}.: ` : '';
+    const snippet = d.last_sender_id === currentUserId ? `Вы: ${d.last_message}` : `${senderPrefix}${d.last_message}`;
 
     el.innerHTML = `
       <div class="avatar">${avatar}</div>
@@ -186,15 +220,31 @@ async function openChat(chatId) {
   dialogsViewEl.classList.add('hidden');
   chatViewEl.classList.remove('hidden');
 
-  const peerName = `${info.peer.surname} ${info.peer.name}`;
-  chatHeaderEl.innerHTML = `
-    <button class="back-btn" id="back-btn">✕</button>
-    <a class="peer-link" href="/id${info.peer.id}">
-      <div class="avatar">${info.peer.has_avatar ? `<img src="/api/users/${info.peer.id}/avatar" alt="${escapeHtml(peerName)}">` : escapeHtml(initials(info.peer))}</div>
-      <div>${escapeHtml(peerName)}</div>
-    </a>`;
+  if (Number(info.type_id) === 1) {
+    const groupTitle = info.title || 'Без названия';
+    const groupAvatar = info.has_avatar ? `<img src="/api/messages/dialogs/${info.chat_id}/avatar" alt="${escapeHtml(groupTitle)}">` : escapeHtml(groupTitle[0]?.toUpperCase() || '?');
+    chatHeaderEl.innerHTML = `
+      <button class="back-btn" id="back-btn">✕</button>
+      <div class="peer-link">
+        <div class="avatar">${groupAvatar}</div>
+        <div>
+          <div>${escapeHtml(groupTitle)}</div>
+          <div class="dialog-snippet">${Number(info.participant_count || 0)} участник(ов)</div>
+        </div>
+      </div>`;
+    chatHeaderEl.querySelector('.peer-link').addEventListener('click', openChatInfoModal);
+  } else {
+    const peerName = `${info.peer.surname} ${info.peer.name}`;
+    chatHeaderEl.innerHTML = `
+      <button class="back-btn" id="back-btn">✕</button>
+      <a class="peer-link" href="/id${info.peer.id}">
+        <div class="avatar">${info.peer.has_avatar ? `<img src="/api/users/${info.peer.id}/avatar" alt="${escapeHtml(peerName)}">` : escapeHtml(initials(info.peer))}</div>
+        <div>${escapeHtml(peerName)}</div>
+      </a>`;
+  }
 
   document.getElementById('back-btn').addEventListener('click', closeChat);
+  updateComposeAvailability();
 
   chatListEl.innerHTML = '';
   const batch = await loadInitialMessages(info.chat_id, info.first_unread_msg_id);
@@ -213,9 +263,17 @@ function closeChat() {
 
 async function loadInitialMessages(chatId, firstUnreadId) {
   if (firstUnreadId && firstUnreadId > 1) {
-    const r = await api(`/api/messages/dialogs/${chatId}/messages?after_id=${firstUnreadId - 1}&limit=20`);
-    const data = await r.json();
-    return { ...data, items: toDatePack(data.items, 'oldest') };
+    const [beforeRes, afterRes] = await Promise.all([
+      api(`/api/messages/dialogs/${chatId}/messages?before_id=${firstUnreadId}&limit=20`),
+      api(`/api/messages/dialogs/${chatId}/messages?after_id=${firstUnreadId - 1}&limit=20`),
+    ]);
+    const beforeData = beforeRes.ok ? await beforeRes.json() : { items: [] };
+    const afterData = afterRes.ok ? await afterRes.json() : { items: [] };
+    const merged = [...beforeData.items, ...afterData.items].reduce((acc, m) => {
+      if (!acc.some((x) => x.msg_id === m.msg_id)) acc.push(m);
+      return acc;
+    }, []);
+    return { items: merged.slice(-40) };
   }
   const r = await api(`/api/messages/dialogs/${chatId}/messages?limit=20`);
   const data = await r.json();
@@ -379,6 +437,17 @@ function renderMessages(items, replace = false, firstUnreadId = null) {
 }
 
 function createMessageEl(m) {
+  if (m.is_system) {
+    const sys = document.createElement('div');
+    const ownSystem = Number(m.sender_id) === Number(currentUserId);
+    sys.className = `system-message message-item ${ownSystem ? 'own-message' : 'foreign-message'}`;
+    sys.dataset.msgId = m.msg_id;
+    sys.dataset.sentAt = m.sent_at;
+    sys.title = new Date(m.sent_at).toLocaleString('ru-RU');
+    sys.textContent = m.content;
+    return sys;
+  }
+
   const own = m.sender_id === currentUserId;
   const el = document.createElement('div');
   el.className = `message-item ${own ? 'own-message' : 'foreign-message'}`;
@@ -524,8 +593,9 @@ async function sendMessage() {
   const payload = { content: text };
   if (composeMode?.type === 'reply') payload.reply_msg_id = composeMode.message.msg_id;
 
-  const peerId = currentChat.peer.id;
-  const ok = await sendMessageToUser(peerId, payload.content, payload.reply_msg_id);
+  const ok = Number(currentChat.type_id) === 1
+    ? await sendMessageToChat(currentChat.chat_id, payload.content, payload.reply_msg_id)
+    : await sendMessageToUser(currentChat.peer.id, payload.content, payload.reply_msg_id);
   if (ok) {
     clearComposeMode();
     await reloadCurrentChat();
@@ -543,6 +613,16 @@ async function sendMessageToUser(userId, content, replyMsgId = null) {
     await openChat(data.chat_id);
   }
   return true;
+}
+
+
+
+async function sendMessageToChat(chatId, content, replyMsgId = null) {
+  const r = await api(`/api/messages/dialogs/${chatId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ content, reply_msg_id: replyMsgId }),
+  });
+  return r.ok;
 }
 
 async function reloadCurrentChat() {
@@ -669,6 +749,316 @@ async function openOrCreateDialogWithUser(userId) {
   }
 }
 
+
+
+async function loadFriendsForGroupBuilder(query = '') {
+  const q = query.trim();
+  let items = allFriendsCache;
+  if (groupBuilderMode === 'add' && currentChat) {
+    const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/addable-friends?q=${encodeURIComponent(q)}`);
+    if (!r.ok) return;
+    items = await r.json();
+    groupFriendsListEl.innerHTML = '';
+    if (!items.length) {
+      groupFriendsListEl.innerHTML = '<div class="empty-state">Друзей не найдено</div>';
+      updateCreateGroupSubmitState();
+      return;
+    }
+    items.forEach((u) => {
+      const row = document.createElement('div');
+      row.className = 'group-friend-item';
+      const name = `${u.surname} ${u.name}`.trim();
+      const av = u.has_avatar ? `<img src="/api/users/${u.id}/avatar" alt="${escapeHtml(name)}">` : escapeHtml(initials(u));
+      const selected = selectedGroupMemberIds.has(u.id);
+      row.innerHTML = `<div class="avatar">${av}</div><div>${escapeHtml(name)}</div><button type="button" class="radio-dot ${selected ? 'radio-dot--active' : ''}"></button>`;
+      row.querySelector('.radio-dot').addEventListener('click', () => {
+        if (selectedGroupMemberIds.has(u.id)) selectedGroupMemberIds.delete(u.id);
+        else selectedGroupMemberIds.add(u.id);
+        loadFriendsForGroupBuilder(groupFriendsSearchInputEl.value);
+      });
+      groupFriendsListEl.appendChild(row);
+    });
+    updateCreateGroupSubmitState();
+    return;
+  }
+
+  if (!items.length || q) {
+    const url = q ? `/api/friends/search?q=${encodeURIComponent(q)}` : '/api/friends';
+    const r = await fetch(url);
+    if (!r.ok) return;
+    const data = await r.json();
+    items = q ? data.filter((u) => u.relation === 'friend') : data;
+    if (!q) allFriendsCache = items;
+  }
+
+  groupFriendsListEl.innerHTML = '';
+  if (!items.length) {
+    groupFriendsListEl.innerHTML = '<div class="empty-state">Друзей не найдено</div>';
+    updateCreateGroupSubmitState();
+    return;
+  }
+
+  items.forEach((u) => {
+    const row = document.createElement('div');
+    row.className = 'group-friend-item';
+    const name = `${u.surname} ${u.name}`.trim();
+    const av = u.has_avatar ? `<img src="/api/users/${u.id}/avatar" alt="${escapeHtml(name)}">` : escapeHtml(initials(u));
+    const selected = selectedGroupMemberIds.has(u.id);
+    row.innerHTML = `<div class="avatar">${av}</div><div>${escapeHtml(name)}</div><button type="button" class="radio-dot ${selected ? 'radio-dot--active' : ''}"></button>`;
+    row.querySelector('.radio-dot').addEventListener('click', () => {
+      if (selectedGroupMemberIds.has(u.id)) selectedGroupMemberIds.delete(u.id);
+      else selectedGroupMemberIds.add(u.id);
+      loadFriendsForGroupBuilder(groupFriendsSearchInputEl.value);
+    });
+    groupFriendsListEl.appendChild(row);
+  });
+  updateCreateGroupSubmitState();
+}
+
+function renderGroupDraftAvatar() {
+  const title = groupTitleInputEl.value.trim();
+  groupAvatarBtnEl.innerHTML = '';
+  if (groupAvatarFile) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(groupAvatarFile);
+    groupAvatarBtnEl.appendChild(img);
+    groupAvatarDeleteBtnEl.hidden = false;
+    return;
+  }
+  groupAvatarBtnEl.textContent = (title[0] || '?').toUpperCase();
+  groupAvatarDeleteBtnEl.hidden = true;
+}
+
+function updateCreateGroupSubmitState() {
+  const hasTitle = groupBuilderMode === 'add' ? true : Boolean(groupTitleInputEl.value.trim());
+  const hasMembers = selectedGroupMemberIds.size > 0;
+  createGroupSubmitBtnEl.disabled = !(hasTitle && hasMembers);
+}
+
+function openCreateGroupView() {
+  groupBuilderMode = 'create';
+  dialogsViewEl.classList.add('hidden');
+  chatViewEl.classList.add('hidden');
+  createGroupViewEl.classList.remove('hidden');
+  groupTitleInputEl.value = '';
+  groupTitleInputEl.disabled = false;
+  groupAvatarBtnEl.disabled = false;
+  groupAvatarWrapEl.classList.remove('hidden');
+  groupTitleWrapEl.classList.remove('hidden');
+  groupFriendsSearchInputEl.value = '';
+  selectedGroupMemberIds = new Set();
+  groupAvatarFile = null;
+  renderGroupDraftAvatar();
+  loadFriendsForGroupBuilder();
+  createGroupSubmitBtnEl.textContent = 'Создать беседу';
+  updateCreateGroupSubmitState();
+}
+
+function closeCreateGroupView() {
+  createGroupViewEl.classList.add('hidden');
+  groupTitleInputEl.disabled = false;
+  groupAvatarBtnEl.disabled = false;
+  groupAvatarWrapEl.classList.remove('hidden');
+  groupTitleWrapEl.classList.remove('hidden');
+  if (currentChat) chatViewEl.classList.remove('hidden');
+  else dialogsViewEl.classList.remove('hidden');
+}
+
+function openAddMembersView() {
+  if (!currentChat) return;
+  closeChatInfoModal();
+  groupBuilderMode = 'add';
+  createGroupViewEl.classList.remove('hidden');
+  dialogsViewEl.classList.add('hidden');
+  chatViewEl.classList.add('hidden');
+  groupTitleInputEl.value = currentChat.title || '';
+  groupTitleInputEl.disabled = true;
+  groupTitleWrapEl.classList.add('hidden');
+  groupAvatarWrapEl.classList.add('hidden');
+  groupAvatarBtnEl.innerHTML = '';
+  groupAvatarBtnEl.disabled = true;
+  groupAvatarDeleteBtnEl.hidden = true;
+  groupFriendsSearchInputEl.value = '';
+  selectedGroupMemberIds = new Set();
+  createGroupSubmitBtnEl.textContent = 'Добавить в беседу';
+  loadFriendsForGroupBuilder();
+  updateCreateGroupSubmitState();
+}
+
+async function submitCreateGroup() {
+  const title = groupTitleInputEl.value.trim();
+  if (groupBuilderMode === 'add' && currentChat) {
+    if (!selectedGroupMemberIds.size) return;
+    await api(`/api/messages/dialogs/${currentChat.chat_id}/participants/add`, {
+      method: 'POST',
+      body: JSON.stringify({ user_ids: [...selectedGroupMemberIds] }),
+    });
+    closeCreateGroupView();
+    await openChatInfoModal();
+    return;
+  }
+
+  if (!title || !selectedGroupMemberIds.size) return;
+  const r = await api('/api/messages/dialogs/group', {
+    method: 'POST',
+    body: JSON.stringify({ title, member_ids: [...selectedGroupMemberIds] }),
+  });
+  if (!r.ok) return;
+  const data = await r.json();
+
+  if (groupAvatarFile && data.chat_id) {
+    const fd = new FormData();
+    fd.append('file', groupAvatarFile);
+    await fetch(`/api/messages/dialogs/${data.chat_id}/avatar`, { method: 'POST', body: fd });
+  }
+
+  closeCreateGroupView();
+  await loadDialogs(true);
+  await openChat(data.chat_id);
+}
+
+function roleLabel(roleId) {
+  if (roleId === 2) return '<span class="participant-role participant-role--owner">Владелец</span>';
+  if (roleId === 1) return '<span class="participant-role participant-role--admin">Админ</span>';
+  return '';
+}
+
+function updateComposeAvailability() {
+  if (!currentChat) return;
+  const blocked = Boolean(currentChat.left_at && currentChat.kicked_by !== currentUserId);
+  composeInputEl.disabled = blocked;
+  composeInputEl.placeholder = blocked ? 'Вы исключены из беседы' : 'Напишите сообщение';
+}
+
+async function fetchParticipants() {
+  if (!currentChat) return [];
+  const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/participants`);
+  if (!r.ok) return [];
+  participantsCache = await r.json();
+  return participantsCache;
+}
+
+function canManageMembers() {
+  return currentChat && [1, 2].includes(Number(currentChat.role_id)) && !currentChat.left_at;
+}
+
+async function openChatInfoModal() {
+  if (!currentChat || Number(currentChat.type_id) !== 1 || currentChat.left_at) return;
+  chatInfoModalEl.classList.remove('hidden');
+  chatInfoTitleEl.textContent = currentChat.title || 'Без названия';
+  chatInfoTitleInputEl.classList.toggle('hidden', Number(currentChat.role_id) !== 2);
+  chatInfoTitleEl.classList.toggle('hidden', Number(currentChat.role_id) === 2);
+  chatInfoTitleSaveBtnEl.classList.add('hidden');
+  if (Number(currentChat.role_id) === 2) {
+    chatInfoTitleInputEl.value = currentChat.title || '';
+  }
+  const avatar = currentChat.has_avatar
+    ? `<img src="/api/messages/dialogs/${currentChat.chat_id}/avatar" alt="">`
+    : escapeHtml((currentChat.title || '?')[0].toUpperCase());
+  chatInfoAvatarEl.innerHTML = avatar;
+  chatInfoAvatarDeleteBtnEl.hidden = !(Number(currentChat.role_id) === 2 && currentChat.has_avatar);
+  chatInfoCountEl.textContent = `${Number(currentChat.participant_count || 0)} участник(ов)`;
+  leaveChatBtnEl.classList.toggle('hidden', Boolean(currentChat.left_at));
+  addMembersBtnEl.classList.toggle('hidden', !canManageMembers());
+  await renderParticipantsInModal();
+}
+
+function closeChatInfoModal() {
+  chatInfoModalEl.classList.add('hidden');
+}
+
+async function renderParticipantsInModal() {
+  const items = await fetchParticipants();
+  currentChat.participant_count = items.filter((u) => !u.left_at).length;
+  chatInfoCountEl.textContent = `${Number(currentChat.participant_count || 0)} участник(ов)`;
+  const meRole = Number(currentChat.role_id || 0);
+  chatParticipantsListEl.innerHTML = '';
+  items.forEach((u) => {
+    const row = document.createElement('div');
+    row.className = 'group-friend-item';
+    const name = `${u.surname} ${u.name}`.trim();
+    const av = u.has_avatar ? `<img src="/api/users/${u.id}/avatar" alt="${escapeHtml(name)}">` : escapeHtml(initials(u));
+    const role = roleLabel(Number(u.role_id));
+    const inactive = u.left_at ? '<div class="dialog-snippet">Вышел(а) из беседы</div>' : '';
+    row.innerHTML = `
+      <a class="avatar" href="/id${u.id}">${av}</a>
+      <div><div>${escapeHtml(name)}</div>${role}${inactive}</div>
+      <div class="participant-actions"></div>
+    `;
+    const actions = row.querySelector('.participant-actions');
+    const canAct = canManageMembers() && !u.left_at && u.id !== currentUserId;
+    if (canAct && (meRole === 2 || Number(u.role_id) === 0)) {
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'tiny-btn tiny-btn--remove';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (!confirm('Удалить участника из беседы?')) return;
+        await api(`/api/messages/dialogs/${currentChat.chat_id}/participants/${u.id}/remove`, { method: 'POST' });
+        await renderParticipantsInModal();
+      });
+      actions.appendChild(removeBtn);
+    }
+    if (meRole === 2 && !u.left_at && Number(u.role_id) !== 2) {
+      const roleBtn = document.createElement('button');
+      const isAdmin = Number(u.role_id) === 1;
+      roleBtn.className = `tiny-btn ${isAdmin ? 'tiny-btn--down' : 'tiny-btn--up'}`;
+      roleBtn.textContent = isAdmin ? '↓' : '↑';
+      roleBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const nextRole = isAdmin ? 0 : 1;
+        if (!confirm(isAdmin ? 'Разжаловать админа?' : 'Сделать участника админом?')) return;
+        await api(`/api/messages/dialogs/${currentChat.chat_id}/participants/${u.id}/role`, {
+          method: 'PATCH',
+          body: JSON.stringify({ role_id: nextRole }),
+        });
+        await renderParticipantsInModal();
+      });
+      actions.appendChild(roleBtn);
+    }
+    chatParticipantsListEl.appendChild(row);
+  });
+}
+
+async function saveChatTitleIfNeeded() {
+  if (!currentChat || Number(currentChat.role_id) !== 2) return;
+  const value = chatInfoTitleInputEl.value.trim();
+  if (!value) {
+    chatInfoTitleInputEl.classList.add('field-input--error');
+    return;
+  }
+  chatInfoTitleInputEl.classList.remove('field-input--error');
+  if (value === (currentChat.title || '')) return;
+  await api(`/api/messages/dialogs/${currentChat.chat_id}/title`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title: value }),
+  });
+  currentChat.title = value;
+  await loadDialogs(true);
+}
+
+async function updateChatAvatarFromModal(file) {
+  if (!currentChat || Number(currentChat.role_id) !== 2 || !file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  const r = await fetch(`/api/messages/dialogs/${currentChat.chat_id}/avatar`, { method: 'POST', body: fd });
+  if (!r.ok) return;
+  currentChat.has_avatar = true;
+  await loadDialogs(true);
+  await openChat(currentChat.chat_id);
+  await openChatInfoModal();
+}
+
+async function deleteChatAvatarFromModal() {
+  if (!currentChat || Number(currentChat.role_id) !== 2 || !currentChat.has_avatar) return;
+  const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/avatar`, { method: 'DELETE' });
+  if (!r.ok) return;
+  currentChat.has_avatar = false;
+  await loadDialogs(true);
+  await openChat(currentChat.chat_id);
+  await openChatInfoModal();
+}
+
 function initWebSocket() {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${protocol}://${window.location.host}/api/messages/ws`);
@@ -742,6 +1132,63 @@ composeInputEl.addEventListener('keydown', async (e) => {
 });
 
 sendBtnEl.addEventListener('click', async () => sendMessage());
+
+
+createChatBtnEl.addEventListener('click', openCreateGroupView);
+groupCreateBackBtnEl.addEventListener('click', closeCreateGroupView);
+groupAvatarBtnEl.addEventListener('click', () => groupAvatarFileEl.click());
+groupAvatarFileEl.addEventListener('change', () => {
+  const file = groupAvatarFileEl.files?.[0];
+  if (!file) return;
+  groupAvatarFile = file;
+  renderGroupDraftAvatar();
+});
+groupAvatarDeleteBtnEl.addEventListener('click', () => {
+  groupAvatarFile = null;
+  groupAvatarFileEl.value = '';
+  renderGroupDraftAvatar();
+});
+groupTitleInputEl.addEventListener('input', () => {
+  renderGroupDraftAvatar();
+  updateCreateGroupSubmitState();
+});
+groupFriendsSearchInputEl.addEventListener('input', () => loadFriendsForGroupBuilder(groupFriendsSearchInputEl.value));
+createGroupSubmitBtnEl.addEventListener('click', submitCreateGroup);
+chatInfoBackBtnEl.addEventListener('click', async () => {
+  closeChatInfoModal();
+});
+chatInfoTitleInputEl.addEventListener('input', () => {
+  if (Number(currentChat?.role_id) !== 2) return;
+  const changed = chatInfoTitleInputEl.value.trim() !== (currentChat?.title || '');
+  chatInfoTitleSaveBtnEl.classList.toggle('hidden', !changed);
+});
+chatInfoTitleSaveBtnEl.addEventListener('click', async () => {
+  await saveChatTitleIfNeeded();
+  chatInfoTitleSaveBtnEl.classList.add('hidden');
+  await openChat(currentChat.chat_id);
+  await openChatInfoModal();
+});
+chatInfoAvatarEl.addEventListener('click', () => {
+  if (Number(currentChat?.role_id) !== 2) return;
+  chatInfoAvatarFileEl.click();
+});
+chatInfoAvatarFileEl.addEventListener('change', async () => {
+  const file = chatInfoAvatarFileEl.files?.[0];
+  chatInfoAvatarFileEl.value = '';
+  await updateChatAvatarFromModal(file);
+});
+chatInfoAvatarDeleteBtnEl.addEventListener('click', async () => {
+  await deleteChatAvatarFromModal();
+});
+leaveChatBtnEl.addEventListener('click', async () => {
+  if (!currentChat || !confirm('Покинуть беседу?')) return;
+  const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/leave`, { method: 'POST' });
+  if (!r.ok) return;
+  closeChatInfoModal();
+  await reloadCurrentChat();
+  await loadDialogs(true);
+});
+addMembersBtnEl.addEventListener('click', openAddMembersView);
 
 document.addEventListener('DOMContentLoaded', async () => {
   initSidebarNav({ currentUserId });

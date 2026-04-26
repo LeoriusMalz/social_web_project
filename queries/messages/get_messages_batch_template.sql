@@ -7,6 +7,7 @@ WITH base AS (
         m.reply_msg_id,
         m.sent_at,
         m.updated_at,
+        m.is_system,
         u.name AS sender_name,
         u.surname AS sender_surname,
         (u.avatar IS NOT NULL) AS sender_has_avatar,
@@ -26,6 +27,14 @@ WITH base AS (
     JOIN users u ON u.id = m.sender_id
     WHERE m.chat_id = $1
       AND m.deleted_at IS NULL
+      AND EXISTS (
+          SELECT 1
+          FROM participation p_vis
+          WHERE p_vis.chat_id = m.chat_id
+            AND p_vis.user_id = $2
+            AND m.sent_at >= p_vis.joined_at
+            AND (p_vis.left_at IS NULL OR m.sent_at <= p_vis.left_at)
+      )
       {where_extra}
     ORDER BY {order}
     LIMIT $3
