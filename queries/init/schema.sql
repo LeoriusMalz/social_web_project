@@ -182,3 +182,32 @@ ALTER TABLE chats
 
 ALTER TABLE messages
     ADD COLUMN IF NOT EXISTS is_system BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS posts (
+    post_id SERIAL PRIMARY KEY,
+    post_by INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    text_content TEXT DEFAULT NULL,
+    file_content BYTEA DEFAULT NULL,
+
+    FOREIGN KEY (post_by) REFERENCES users (id) ON DELETE CASCADE,
+    CHECK (NULLIF(BTRIM(COALESCE(text_content, '')), '') IS NOT NULL OR file_content IS NOT NULL)
+);
+
+CREATE TABLE IF NOT EXISTS reactions (
+    reaction_id SERIAL PRIMARY KEY,
+    post_id INTEGER NOT NULL,
+    reaction_by INTEGER NOT NULL,
+    reacted_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    is_liked BOOLEAN NOT NULL,
+
+    FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE,
+    FOREIGN KEY (reaction_by) REFERENCES users (id) ON DELETE CASCADE,
+    UNIQUE (post_id, reaction_by)
+);
+
+CREATE INDEX IF NOT EXISTS posts_post_by_post_id_idx
+    ON posts (post_by, post_id DESC);
+
+CREATE INDEX IF NOT EXISTS reactions_post_id_idx
+    ON reactions (post_id);

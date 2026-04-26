@@ -38,6 +38,25 @@
                 </button>
             </div>
         </section>
+
+        <section id="post-create-section" class="post-create-section" hidden>
+            <button id="create-post-btn" class="create-post-btn" type="button">Создать пост</button>
+
+            <form id="post-form" class="post-form post-card" hidden>
+                <textarea id="post-text" class="post-text" placeholder="Что у вас нового?" rows="4"></textarea>
+                <div class="post-form-actions">
+                    <input id="post-file-input" type="file" accept="image/*" hidden>
+                    <button id="post-file-btn" class="post-file-btn" type="button" aria-label="Прикрепить фото">+</button>
+                    <button id="publish-post-btn" class="publish-post-btn" type="submit">Опубликовать</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="posts-section">
+            <div id="posts-list" class="posts-list"></div>
+            <div id="posts-loader" class="posts-loader">Загрузка...</div>
+            <div id="posts-end" class="posts-end" hidden>Посты закончились</div>
+        </section>
     </main>
 </div>
 

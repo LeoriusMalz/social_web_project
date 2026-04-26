@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from db import create_pool
-from api import friends, messages, settings, users
+from api import friends, messages, posts, settings, users
 import pages
 from services.init_db import init_db
 from contextlib import asynccontextmanager
@@ -29,6 +29,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
 app.include_router(friends.router, prefix="/api/friends", tags=["friends"])
-app.include_router(messages.router, prefix="/api/messages", tags=["messages"])
+app.include_router(messages.router, prefix="/api/messages", tags=["messages"] )
+app.include_router(posts.router, prefix="/api/posts", tags=["posts"])
 
 app.include_router(pages.router, tags=["pages"])
