@@ -13,6 +13,7 @@ SELECT
 FROM posts p
 LEFT JOIN reactions r ON r.post_id = p.post_id
 WHERE p.post_by = $1
+  AND p.is_deleted = FALSE
   AND ($4::INT IS NULL OR p.post_id < $4)
 GROUP BY p.post_id
 ORDER BY p.post_id DESC

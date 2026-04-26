@@ -7,6 +7,8 @@ get_post_file_sql = load_sql("posts/get_post_file.sql")
 get_post_owner_sql = load_sql("posts/get_post_owner.sql")
 upsert_reaction_sql = load_sql("posts/upsert_reaction.sql")
 delete_reaction_sql = load_sql("posts/delete_reaction.sql")
+soft_delete_post_sql = load_sql("posts/soft_delete_post.sql")
+list_reaction_users_sql = load_sql("posts/list_reaction_users.sql")
 
 
 async def create_post(conn, post_by: int, text_content: str | None, file_content: bytes | None):
@@ -46,3 +48,13 @@ async def set_post_reaction(conn, post_id: int, user_id: int, is_liked: bool):
 
 async def unset_post_reaction(conn, post_id: int, user_id: int):
     await conn.execute(delete_reaction_sql, post_id, user_id)
+
+
+async def soft_delete_post(conn, post_id: int, current_user_id: int):
+    result = await conn.execute(soft_delete_post_sql, post_id, current_user_id)
+    return result.endswith("1")
+
+
+async def list_post_reaction_users(conn, post_id: int, is_liked: bool):
+    rows = await conn.fetch(list_reaction_users_sql, post_id, is_liked)
+    return [dict(row) for row in rows]

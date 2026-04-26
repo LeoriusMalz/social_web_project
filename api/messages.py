@@ -497,4 +497,3 @@ async def messages_ws(websocket: WebSocket):
                 await websocket.send_text(json.dumps({"type": "pong"}))
     except WebSocketDisconnect:
         await messages_hub.disconnect(user_id, websocket)
-    list_chat_participants,

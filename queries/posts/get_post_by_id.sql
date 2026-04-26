@@ -13,4 +13,5 @@ SELECT
 FROM posts p
 LEFT JOIN reactions r ON r.post_id = p.post_id
 WHERE p.post_id = $1
+  AND p.is_deleted = FALSE
 GROUP BY p.post_id;

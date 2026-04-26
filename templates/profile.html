@@ -44,9 +44,11 @@
 
             <form id="post-form" class="post-form post-card" hidden>
                 <textarea id="post-text" class="post-text" placeholder="Что у вас нового?" rows="4"></textarea>
+                <div id="post-form-error" class="post-form-error" hidden></div>
                 <div class="post-form-actions">
                     <input id="post-file-input" type="file" accept="image/*" hidden>
                     <button id="post-file-btn" class="post-file-btn" type="button" aria-label="Прикрепить фото">+</button>
+                    <button id="cancel-post-btn" class="cancel-post-btn" type="button">Отменить</button>
                     <button id="publish-post-btn" class="publish-post-btn" type="submit">Опубликовать</button>
                 </div>
             </form>

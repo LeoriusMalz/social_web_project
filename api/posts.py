@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from auth import require_authenticated_user
 from db import get_db
-from services.posts import create_post, get_post_by_id, get_post_file, get_post_owner, list_user_posts, set_post_reaction, unset_post_reaction
+from services.posts import create_post, get_post_by_id, get_post_file, get_post_owner, list_post_reaction_users, list_user_posts, set_post_reaction, soft_delete_post, unset_post_reaction
 
 router = APIRouter()
 
@@ -84,3 +84,21 @@ async def unreact_post_api(post_id: int, current_user=Depends(require_authentica
     await unset_post_reaction(db, post_id, current_user["user_id"])
     post = await get_post_by_id(db, post_id, current_user["user_id"])
     return post
+
+
+@router.get("/{post_id}/reactions/users")
+async def get_post_reaction_users_api(post_id: int, current_user=Depends(require_authenticated_user), db=Depends(get_db)):
+    owner_id = await get_post_owner(db, post_id)
+    if owner_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пост не найден")
+
+    liked = await list_post_reaction_users(db, post_id, True)
+    disliked = await list_post_reaction_users(db, post_id, False)
+    return {"liked": liked, "disliked": disliked}
+
+
+@router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_post_api(post_id: int, current_user=Depends(require_authenticated_user), db=Depends(get_db)):
+    deleted = await soft_delete_post(db, post_id, current_user["user_id"])
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пост не найден")

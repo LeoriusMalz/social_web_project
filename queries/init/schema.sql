@@ -189,6 +189,7 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     text_content TEXT DEFAULT NULL,
     file_content BYTEA DEFAULT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
 
     FOREIGN KEY (post_by) REFERENCES users (id) ON DELETE CASCADE,
     CHECK (NULLIF(BTRIM(COALESCE(text_content, '')), '') IS NOT NULL OR file_content IS NOT NULL)

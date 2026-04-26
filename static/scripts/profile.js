@@ -237,12 +237,37 @@ function formatPostCreatedAt(createdAtIso) {
     return `${hhmm} ${dmy}`;
 }
 
-function createReactionButton(label, count, active, onClick) {
+function createReactionButton(label, count, active, onClick, onContextMenu = null) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `react-btn${active ? ' react-btn--active' : ''}`;
     btn.textContent = `${label} ${count ? count : ''}`;
     btn.addEventListener('click', onClick);
+    if (onContextMenu) {
+        btn.addEventListener('contextmenu', onContextMenu);
+    }
+    return btn;
+}
+
+function createDeletePostButton(postId, onDeleted) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'post-delete-btn';
+    btn.textContent = 'Удалить';
+    btn.addEventListener('click', async () => {
+        const ok = window.confirm('Удалить этот пост?');
+        if (!ok) {
+            return;
+        }
+
+        const response = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            window.alert('Не удалось удалить пост');
+            return;
+        }
+
+        onDeleted();
+    });
     return btn;
 }
 
@@ -271,6 +296,47 @@ async function unreactPost(postId) {
     }
 
     return response.json();
+}
+
+async function openPostReactionsOverlay(postId) {
+    const titleEl = document.getElementById('people-title');
+    const listEl = document.getElementById('people-list');
+    const overlay = document.getElementById('people-overlay');
+
+    const response = await fetch(`/api/posts/${postId}/reactions/users`);
+    if (!response.ok) {
+        return;
+    }
+
+    const data = await response.json();
+    const liked = data.liked || [];
+    const disliked = data.disliked || [];
+
+    titleEl.textContent = 'Реакции';
+    listEl.innerHTML = '';
+
+    const appendSection = (label, users) => {
+        const section = document.createElement('div');
+        section.className = 'friends-section-label';
+        section.textContent = label;
+        listEl.appendChild(section);
+
+        if (!users.length) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.textContent = 'Пока пусто';
+            listEl.appendChild(empty);
+            return;
+        }
+
+        users.forEach((user) => listEl.appendChild(createPersonCard(user)));
+    };
+
+    appendSection('Понравилось', liked);
+    appendSection('Не понравилось', disliked);
+
+    overlay.classList.add('details-overlay--open');
+    overlay.setAttribute('aria-hidden', 'false');
 }
 
 function renderPost(post, prepend = false) {
@@ -302,6 +368,11 @@ function renderPost(post, prepend = false) {
 
     const renderReactions = (postData) => {
         reactions.innerHTML = '';
+        const openReactions = async (event) => {
+            event.preventDefault();
+            await openPostReactionsOverlay(postData.post_id);
+        };
+
         reactions.appendChild(createReactionButton('👍', postData.likes_count, !!postData.is_liked_by_me, async () => {
             let updated;
             if (!!postData.is_liked_by_me) {
@@ -312,7 +383,7 @@ function renderPost(post, prepend = false) {
             if (updated) {
                 renderReactions(updated);
             }
-        }));
+        }, openReactions));
         reactions.appendChild(createReactionButton('👎', postData.dislikes_count, !!postData.is_disliked_by_me, async () => {
             let updated;
             if (!!postData.is_disliked_by_me) {
@@ -323,7 +394,7 @@ function renderPost(post, prepend = false) {
             if (updated) {
                 renderReactions(updated);
             }
-        }));
+        }, openReactions));
     };
 
     renderReactions(post);
@@ -331,9 +402,17 @@ function renderPost(post, prepend = false) {
     const date = document.createElement('div');
     date.className = 'post-created-at';
     date.textContent = formatPostCreatedAt(post.created_at);
+    date.title = new Date(post.created_at).toLocaleString('ru-RU');
+
+    const meta = document.createElement('div');
+    meta.className = 'post-meta';
+    if (isOwner) {
+        meta.appendChild(createDeletePostButton(post.post_id, () => card.remove()));
+    }
+    meta.appendChild(date);
 
     footer.appendChild(reactions);
-    footer.appendChild(date);
+    footer.appendChild(meta);
     card.appendChild(footer);
 
     if (prepend) {
@@ -407,6 +486,8 @@ function setupPostComposer() {
     const textEl = document.getElementById('post-text');
     const fileInput = document.getElementById('post-file-input');
     const fileBtn = document.getElementById('post-file-btn');
+    const cancelBtn = document.getElementById('cancel-post-btn');
+    const errorEl = document.getElementById('post-form-error');
 
     section.hidden = false;
 
@@ -419,9 +500,36 @@ function setupPostComposer() {
     const resetFileButton = () => {
         fileBtn.textContent = '+';
         fileBtn.innerHTML = '+';
+        fileBtn.classList.remove('post-file-btn--has-file');
+        fileBtn.classList.remove('post-file-btn--error');
+        fileBtn.setAttribute('aria-label', 'Прикрепить фото');
+    };
+
+    const clearComposerError = () => {
+        errorEl.hidden = true;
+        errorEl.textContent = '';
+        textEl.classList.remove('post-text--error');
+        fileBtn.classList.remove('post-file-btn--error');
+    };
+
+    const showComposerError = ({ message, highlightText = false, highlightFile = false }) => {
+        errorEl.hidden = false;
+        errorEl.textContent = message;
+        textEl.classList.toggle('post-text--error', highlightText);
+        fileBtn.classList.toggle('post-file-btn--error', highlightFile);
+    };
+
+    const resetComposer = () => {
+        textEl.value = '';
+        fileInput.value = '';
+        resetFileButton();
+        clearComposerError();
+        form.hidden = true;
+        createBtn.hidden = false;
     };
 
     fileBtn.addEventListener('click', () => {
+        clearComposerError();
         if (fileInput.files && fileInput.files.length > 0) {
             fileInput.value = '';
             resetFileButton();
@@ -431,9 +539,20 @@ function setupPostComposer() {
     });
 
     fileInput.addEventListener('change', () => {
+        clearComposerError();
         const file = fileInput.files?.[0];
         if (!file) {
             resetFileButton();
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            fileInput.value = '';
+            resetFileButton();
+            showComposerError({
+                message: 'Можно прикреплять только изображения',
+                highlightFile: true,
+            });
             return;
         }
 
@@ -442,6 +561,18 @@ function setupPostComposer() {
         preview.src = URL.createObjectURL(file);
         fileBtn.innerHTML = '';
         fileBtn.appendChild(preview);
+        fileBtn.classList.add('post-file-btn--has-file');
+        fileBtn.setAttribute('aria-label', 'Удалить прикрепленное фото');
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        resetComposer();
+    });
+
+    textEl.addEventListener('input', () => {
+        if (textEl.classList.contains('post-text--error')) {
+            clearComposerError();
+        }
     });
 
     form.addEventListener('submit', async (event) => {
@@ -451,7 +582,10 @@ function setupPostComposer() {
         const file = fileInput.files?.[0] || null;
 
         if (!text && !file) {
-            window.alert('Пост не может быть пустым');
+            showComposerError({
+                message: 'Пост не может быть пустым',
+                highlightText: true,
+            });
             return;
         }
 
@@ -469,15 +603,26 @@ function setupPostComposer() {
         });
 
         if (!response.ok) {
-            window.alert('Не удалось опубликовать пост');
+            let message = 'Не удалось опубликовать пост';
+            try {
+                const data = await response.json();
+                if (data?.detail) {
+                    message = data.detail;
+                }
+            } catch (_) {
+                // noop
+            }
+            showComposerError({
+                message,
+                highlightText: true,
+                highlightFile: Boolean(file),
+            });
             return;
         }
 
         const post = await response.json();
         renderPost(post, true);
-        textEl.value = '';
-        fileInput.value = '';
-        resetFileButton();
+        resetComposer();
     });
 }
 

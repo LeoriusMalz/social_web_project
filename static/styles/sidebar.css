@@ -41,6 +41,29 @@
     transform: scale(0.98);
 }
 
+img.image-previewable {
+    cursor: pointer;
+}
+
+.details-modal.image-preview-modal {
+    width: auto;
+    max-width: 96vw;
+    max-height: 90vh;
+    padding: 12px;
+    display: grid;
+    justify-items: center;
+    overflow: auto;
+}
+
+.details-modal.image-preview-modal .image-preview-modal__img {
+    width: auto;
+    height: auto;
+    max-width: 94vw;
+    max-height: calc(90vh - 24px);
+    object-fit: contain;
+    border-radius: 10px;
+}
+
 @media (max-width: 1000px) {
     .sidebar {
         display: flex;
