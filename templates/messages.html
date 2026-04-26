@@ -26,7 +26,7 @@
                 <div class="create-group-header">
                     <button id="group-create-back-btn" class="back-btn" type="button">✕</button>
                     <div class="group-avatar-wrap">
-                        <button id="group-avatar-btn" type="button" class="avatar-picker" aria-label="Аватар беседы"></button>
+                        <button id="group-avatar-btn" type="button" class="avatar-picker avatar-picker--editable" aria-label="Аватар беседы"></button>
                         <input id="group-avatar-file" type="file" accept="image/*" hidden>
                         <button id="group-avatar-delete-btn" class="group-avatar-delete" type="button" hidden>Удалить</button>
                     </div>
@@ -62,15 +62,15 @@
                 <button id="chat-info-avatar-delete-btn" class="group-avatar-delete" type="button" hidden>Удалить</button>
             </div>
             <input id="chat-info-avatar-file" type="file" accept="image/*" hidden>
+            <div id="chat-info-title" class="chat-info-title"></div>
             <div class="chat-info-title-input-wrap">
                 <input id="chat-info-title-input" class="messages-search-input hidden" type="text" maxlength="120">
                 <button id="chat-info-title-save-btn" class="chat-title-save-btn hidden" type="button">✓</button>
             </div>
-            <div id="chat-info-title" class="chat-info-title"></div>
         </div>
-        <div id="chat-info-count" class="section-label"></div>
         <button id="leave-chat-btn" class="danger-btn" type="button">Покинуть беседу</button>
         <button id="add-members-btn" class="primary-btn hidden" type="button">Добавить участников</button>
+        <div id="chat-info-count" class="section-label"></div>
         <div id="chat-participants-list" class="dialogs-list"></div>
     </div>
 </div>

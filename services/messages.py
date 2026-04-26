@@ -63,11 +63,10 @@ async def get_or_create_dialog_chat(conn, user_id: int, target_user_id: int) -> 
     if row:
         return row["chat_id"]
 
-    now = datetime.utcnow()
     chat = await conn.fetchrow(
         create_chat_sql,
         DIALOG_CHAT_TYPE_ID,
-        now,
+        datetime.utcnow(),
         user_id,
     )
     chat_id = chat["chat_id"]
@@ -75,8 +74,8 @@ async def get_or_create_dialog_chat(conn, user_id: int, target_user_id: int) -> 
     await conn.executemany(
         add_participation_sql,
         [
-            (user_id, chat_id, DEFAULT_ROLE_ID, now, user_id),
-            (target_user_id, chat_id, DEFAULT_ROLE_ID, now, user_id),
+            (user_id, chat_id, DEFAULT_ROLE_ID, user_id),
+            (target_user_id, chat_id, DEFAULT_ROLE_ID, user_id),
         ],
     )
 
@@ -97,8 +96,8 @@ async def create_group_chat(conn, user_id: int, title: str, member_ids: list[int
     chat = await conn.fetchrow(create_group_chat_sql, GROUP_CHAT_TYPE_ID, now, user_id, cleaned)
     chat_id = chat["chat_id"]
 
-    rows = [(user_id, chat_id, OWNER_ROLE_ID, now, user_id)]
-    rows.extend((mid, chat_id, DEFAULT_ROLE_ID, now, user_id) for mid in unique_members)
+    rows = [(user_id, chat_id, OWNER_ROLE_ID, user_id)]
+    rows.extend((mid, chat_id, DEFAULT_ROLE_ID, user_id) for mid in unique_members)
     await conn.executemany(add_participation_sql, rows)
     return chat_id
 
@@ -190,7 +189,6 @@ async def add_chat_members(conn, chat_id: int, inviter_id: int, user_ids: list[i
     if not inviter or inviter["left_at"] is not None or inviter["role_id"] not in (1, 2):
         return []
 
-    now = datetime.utcnow()
     added = []
     for user_id in sorted({u for u in user_ids if u != inviter_id}):
         latest = await get_latest_participation(conn, chat_id, user_id)
@@ -200,7 +198,7 @@ async def add_chat_members(conn, chat_id: int, inviter_id: int, user_ids: list[i
             # Самостоятельно вышедшего добавлять нельзя.
             continue
         role_id = latest["role_id"] if latest else DEFAULT_ROLE_ID
-        await conn.execute(add_participation_sql, user_id, chat_id, role_id, now, inviter_id)
+        await conn.execute(add_participation_sql, user_id, chat_id, role_id, inviter_id)
         added.append(user_id)
     return added
 
@@ -258,8 +256,7 @@ async def restore_member(conn, chat_id: int, actor_id: int, user_id: int):
     latest = await get_latest_participation(conn, chat_id, user_id)
     if not latest:
         return False
-    now = datetime.utcnow()
-    await conn.execute(add_participation_sql, user_id, chat_id, latest["role_id"], now, actor_id)
+    await conn.execute(add_participation_sql, user_id, chat_id, latest["role_id"], actor_id)
     return True
 
 

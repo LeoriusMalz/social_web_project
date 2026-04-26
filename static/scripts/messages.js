@@ -24,6 +24,7 @@ const chatInfoBackBtnEl = document.getElementById('chat-info-back-btn');
 const chatInfoAvatarEl = document.getElementById('chat-info-avatar');
 const chatInfoAvatarFileEl = document.getElementById('chat-info-avatar-file');
 const chatInfoAvatarDeleteBtnEl = document.getElementById('chat-info-avatar-delete-btn');
+const chatInfoAvatarWrapEl = document.querySelector('.chat-info-avatar-wrap');
 const chatInfoTitleEl = document.getElementById('chat-info-title');
 const chatInfoTitleInputEl = document.getElementById('chat-info-title-input');
 const chatInfoTitleSaveBtnEl = document.getElementById('chat-info-title-save-btn');
@@ -227,8 +228,8 @@ async function openChat(chatId) {
       <button class="back-btn" id="back-btn">✕</button>
       <div class="peer-link">
         <div class="avatar">${groupAvatar}</div>
-        <div>
-          <div>${escapeHtml(groupTitle)}</div>
+        <div class="peer-link__meta">
+          <div class="peer-link__title">${escapeHtml(groupTitle)}</div>
           <div class="dialog-snippet">${Number(info.participant_count || 0)} участник(ов)</div>
         </div>
       </div>`;
@@ -239,7 +240,9 @@ async function openChat(chatId) {
       <button class="back-btn" id="back-btn">✕</button>
       <a class="peer-link" href="/id${info.peer.id}">
         <div class="avatar">${info.peer.has_avatar ? `<img src="/api/users/${info.peer.id}/avatar" alt="${escapeHtml(peerName)}">` : escapeHtml(initials(info.peer))}</div>
-        <div>${escapeHtml(peerName)}</div>
+        <div class="peer-link__meta">
+          <div class="peer-link__title">${escapeHtml(peerName)}</div>
+        </div>
       </a>`;
   }
 
@@ -955,7 +958,11 @@ async function openChatInfoModal() {
   const avatar = currentChat.has_avatar
     ? `<img src="/api/messages/dialogs/${currentChat.chat_id}/avatar" alt="">`
     : escapeHtml((currentChat.title || '?')[0].toUpperCase());
+  const isOwner = Number(currentChat.role_id) === 2;
   chatInfoAvatarEl.innerHTML = avatar;
+  chatInfoAvatarEl.classList.toggle('avatar-picker--editable', isOwner);
+  chatInfoAvatarEl.classList.toggle('chat-info-avatar--owner', isOwner);
+  chatInfoAvatarWrapEl.classList.toggle('chat-info-avatar-wrap--owner', isOwner);
   chatInfoAvatarDeleteBtnEl.hidden = !(Number(currentChat.role_id) === 2 && currentChat.has_avatar);
   chatInfoCountEl.textContent = `${Number(currentChat.participant_count || 0)} участник(ов)`;
   leaveChatBtnEl.classList.toggle('hidden', Boolean(currentChat.left_at));
