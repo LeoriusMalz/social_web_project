@@ -20,7 +20,7 @@ list_user_friends_sql = load_sql("friends/list_user_friends.sql")
 list_user_followers_sql = load_sql("friends/list_user_followers.sql")
 
 
-async def get_relationship_status(conn, current_user_id: int, target_user_id: int) -> Literal["none", "friend", "outgoing", "incoming"]:
+async def get_relationship_status(conn, current_user_id: int, target_user_id: int):
     if current_user_id == target_user_id:
         return "none"
 

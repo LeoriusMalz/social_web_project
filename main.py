@@ -9,7 +9,6 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup
     app.state.pool = await create_pool()
     print("DB pool created")
 
@@ -19,7 +18,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # shutdown
     await app.state.pool.close()
     print("DB pool closed")
 

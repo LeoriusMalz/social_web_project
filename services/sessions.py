@@ -7,7 +7,7 @@ create_session_sql = load_sql("sessions/create_session.sql")
 get_session_by_token_sql = load_sql("sessions/get_session_by_token.sql")
 revoke_session_by_token_sql = load_sql("sessions/revoke_session_by_token.sql")
 
-SESSION_TTL_SECONDS = 60 * 60 * 24 * 7  # 7 days
+SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
 
 
 def _hash_token(token: str) -> str:

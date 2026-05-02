@@ -25,7 +25,6 @@ DB_PASS="12345"
 # Создание пользователя и БД
 psql postgres <<EOF
 
--- Создаём пользователя (можно через DO)
 DO \$\$
 BEGIN
    IF NOT EXISTS (
