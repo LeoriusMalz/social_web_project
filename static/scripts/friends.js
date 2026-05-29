@@ -3,8 +3,15 @@ const searchInputEl = document.getElementById("friends-search-input");
 const tabButtons = document.querySelectorAll(".friends-tab");
 const tabsEl = document.querySelector('.friends-tabs');
 
-const initialTab = new URLSearchParams(window.location.search).get("tab");
+const params = new URLSearchParams(window.location.search);
+const queryTab = params.get("tab");
+const storedTab = sessionStorage.getItem("friends:initialTab");
+sessionStorage.removeItem("friends:initialTab");
+if (queryTab) {
+    window.history.replaceState({}, "", window.location.pathname);
+}
 const allowedTabs = new Set(["friends", "outgoing", "incoming"]);
+const initialTab = allowedTabs.has(storedTab) ? storedTab : queryTab;
 let activeTab = allowedTabs.has(initialTab) ? initialTab : "friends";
 let searchValue = "";
 
@@ -75,9 +82,9 @@ function createActionButtons(user) {
 
     if (user.relation === "friend") {
         const deleteBtn = document.createElement("button");
-        deleteBtn.className = "icon-btn icon-btn--danger";
+        deleteBtn.className = "text-btn text-btn--danger";
         deleteBtn.title = "Удалить из друзей";
-        deleteBtn.textContent = "🗑";
+        deleteBtn.textContent = "Удалить";
         deleteBtn.addEventListener("click", async (event) => {
             event.stopPropagation();
             const ok = window.confirm('Удалить пользователя из друзей?');
@@ -101,9 +108,9 @@ function createActionButtons(user) {
         actions.appendChild(cancelBtn);
     } else if (user.relation === "incoming") {
         const acceptBtn = document.createElement("button");
-        acceptBtn.className = "icon-btn icon-btn--success";
+        acceptBtn.className = "text-btn text-btn--success";
         acceptBtn.title = "Принять";
-        acceptBtn.textContent = "✔";
+        acceptBtn.textContent = "Принять";
         acceptBtn.addEventListener("click", async (event) => {
             event.stopPropagation();
             await apiAcceptRequest(user.id);
@@ -111,9 +118,9 @@ function createActionButtons(user) {
         });
 
         const rejectBtn = document.createElement("button");
-        rejectBtn.className = "icon-btn icon-btn--danger";
+        rejectBtn.className = "text-btn text-btn--danger";
         rejectBtn.title = "Отклонить";
-        rejectBtn.textContent = "✖";
+        rejectBtn.textContent = "Отклонить";
         rejectBtn.addEventListener("click", async (event) => {
             event.stopPropagation();
             await apiRejectRequest(user.id);

@@ -55,6 +55,8 @@ let groupAvatarFile = null;
 let participantsCache = [];
 let groupBuilderMode = 'create';
 
+const MESSAGE_DRAFT_KEY_PREFIX = `messages:draft:${currentUserId}:`;
+
 const groupAvatarWrapEl = document.querySelector('.group-avatar-wrap');
 const groupTitleWrapEl = document.querySelector('.group-title-wrap');
 
@@ -62,6 +64,29 @@ function fullName(u) { return `${u.surname} ${u.name}`.trim(); }
 function initials(u) { return `${u.name?.[0] || ''}${u.surname?.[0] || ''}`.toUpperCase(); }
 function avatarUrl(u) { return u.has_avatar || u.peer_has_avatar || u.sender_has_avatar ? `/api/users/${u.id || u.peer_id || u.sender_id}/avatar` : null; }
 function escapeHtml(str) { return (str || '').replace(/[&<>"']/g, (s) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+
+function draftKey(chatId) {
+  return `${MESSAGE_DRAFT_KEY_PREFIX}${chatId}`;
+}
+
+function getDraft(chatId) {
+  return localStorage.getItem(draftKey(chatId)) || '';
+}
+
+function saveDraft(chatId, value) {
+  if (!chatId) return;
+  if (value) localStorage.setItem(draftKey(chatId), value);
+  else localStorage.removeItem(draftKey(chatId));
+}
+
+function saveCurrentDraft() {
+  if (!currentChat || composeMode?.type === 'edit') return;
+  saveDraft(currentChat.chat_id, composeInputEl.value);
+}
+
+function discardDraft(chatId) {
+  localStorage.removeItem(draftKey(chatId));
+}
 
 function formatDialogTime(iso) {
   const d = new Date(iso);
@@ -209,10 +234,14 @@ function createSearchUser(u) {
 }
 
 async function openChat(chatId) {
+  saveCurrentDraft();
   const infoRes = await api(`/api/messages/dialogs/${chatId}`);
   if (!infoRes.ok) return;
   const info = await infoRes.json();
   currentChat = info;
+  composeMode = null;
+  composeContextEl.classList.add('hidden');
+  composeContextEl.innerHTML = '';
   messageBeforeId = null;
   messageAfterId = null;
   reachedHistoryStart = false;
@@ -248,6 +277,9 @@ async function openChat(chatId) {
 
   document.getElementById('back-btn').addEventListener('click', closeChat);
   updateComposeAvailability();
+  composeInputEl.value = getDraft(info.chat_id);
+  autoGrow();
+  toggleSendButton();
 
   chatListEl.innerHTML = '';
   const batch = await loadInitialMessages(info.chat_id, info.first_unread_msg_id);
@@ -256,6 +288,7 @@ async function openChat(chatId) {
 }
 
 function closeChat() {
+  saveCurrentDraft();
   currentChat = null;
   newMessagesBelow = 0;
   chatViewEl.classList.add('hidden');
@@ -600,6 +633,7 @@ async function sendMessage() {
     ? await sendMessageToChat(currentChat.chat_id, payload.content, payload.reply_msg_id)
     : await sendMessageToUser(currentChat.peer.id, payload.content, payload.reply_msg_id);
   if (ok) {
+    discardDraft(currentChat.chat_id);
     clearComposeMode();
     await reloadCurrentChat();
   }
@@ -1127,6 +1161,7 @@ jumpToBottomBtnEl.addEventListener('click', async () => {
 });
 
 composeInputEl.addEventListener('input', () => {
+  saveCurrentDraft();
   autoGrow();
   toggleSendButton();
 });
@@ -1202,7 +1237,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDialogs(true);
 
   const params = new URLSearchParams(window.location.search);
-  const chatWithUser = Number(params.get('chat_with'));
+  const queryChatWithUser = Number(params.get('chat_with'));
+  if (params.has('chat_with')) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  const storedChatWithUser = Number(sessionStorage.getItem('messages:openUserId'));
+  sessionStorage.removeItem('messages:openUserId');
+  const chatWithUser = storedChatWithUser > 0 ? storedChatWithUser : queryChatWithUser;
   if (chatWithUser > 0) {
     await openOrCreateDialogWithUser(chatWithUser);
   }

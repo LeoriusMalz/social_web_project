@@ -125,7 +125,8 @@ async function openPeopleOverlay(type) {
 }
 
 function openDialogWithUser(targetUserId) {
-    window.location.href = `/messages?chat_with=${targetUserId}`;
+    sessionStorage.setItem('messages:openUserId', String(targetUserId));
+    window.location.href = '/messages';
 }
 
 function relationButton(label, className, onClick) {
@@ -486,6 +487,7 @@ function setupPostComposer() {
     const textEl = document.getElementById('post-text');
     const fileInput = document.getElementById('post-file-input');
     const fileBtn = document.getElementById('post-file-btn');
+    const fileDeleteBtn = document.getElementById('post-file-delete-btn');
     const cancelBtn = document.getElementById('cancel-post-btn');
     const errorEl = document.getElementById('post-form-error');
 
@@ -503,6 +505,7 @@ function setupPostComposer() {
         fileBtn.classList.remove('post-file-btn--has-file');
         fileBtn.classList.remove('post-file-btn--error');
         fileBtn.setAttribute('aria-label', 'Прикрепить фото');
+        fileDeleteBtn.hidden = true;
     };
 
     const clearComposerError = () => {
@@ -530,12 +533,13 @@ function setupPostComposer() {
 
     fileBtn.addEventListener('click', () => {
         clearComposerError();
-        if (fileInput.files && fileInput.files.length > 0) {
-            fileInput.value = '';
-            resetFileButton();
-            return;
-        }
         fileInput.click();
+    });
+
+    fileDeleteBtn.addEventListener('click', () => {
+        clearComposerError();
+        fileInput.value = '';
+        resetFileButton();
     });
 
     fileInput.addEventListener('change', () => {
@@ -562,7 +566,8 @@ function setupPostComposer() {
         fileBtn.innerHTML = '';
         fileBtn.appendChild(preview);
         fileBtn.classList.add('post-file-btn--has-file');
-        fileBtn.setAttribute('aria-label', 'Удалить прикрепленное фото');
+        fileBtn.setAttribute('aria-label', 'Заменить прикрепленное фото');
+        fileDeleteBtn.hidden = false;
     });
 
     cancelBtn.addEventListener('click', () => {
@@ -696,7 +701,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         if (isOwner) {
-            window.location.href = '/friends?tab=incoming';
+            sessionStorage.setItem('friends:initialTab', 'incoming');
+            window.location.href = '/friends';
             return;
         }
         await openPeopleOverlay('followers');

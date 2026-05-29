@@ -47,7 +47,10 @@
                 <div id="post-form-error" class="post-form-error" hidden></div>
                 <div class="post-form-actions">
                     <input id="post-file-input" type="file" accept="image/*" hidden>
-                    <button id="post-file-btn" class="post-file-btn" type="button" aria-label="Прикрепить фото">+</button>
+                    <div class="post-file-control">
+                        <button id="post-file-btn" class="post-file-btn" type="button" aria-label="Прикрепить фото">+</button>
+                        <button id="post-file-delete-btn" class="post-file-delete-btn" type="button" hidden>Удалить</button>
+                    </div>
                     <button id="cancel-post-btn" class="cancel-post-btn" type="button">Отменить</button>
                     <button id="publish-post-btn" class="publish-post-btn" type="submit">Опубликовать</button>
                 </div>
