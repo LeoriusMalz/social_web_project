@@ -38,6 +38,10 @@ let dialogsDone = false;
 let dialogsLoading = false;
 let dialogs = [];
 let searchTimer = null;
+let groupFriendsSearchTimer = null;
+
+const MIN_SEARCH_LENGTH = 3;
+const SEARCH_DEBOUNCE_MS = 500;
 let ws = null;
 let currentChat = null;
 let messageBeforeId = null;
@@ -181,6 +185,12 @@ async function renderSearch(query) {
   if (!q) {
     searchResultsEl.classList.add('hidden');
     searchResultsEl.innerHTML = '';
+    return;
+  }
+  searchResultsEl.classList.remove('hidden');
+  searchResultsEl.innerHTML = '';
+  if (q.length < MIN_SEARCH_LENGTH) {
+    searchResultsEl.innerHTML = `<div class="empty-state">Введите минимум ${MIN_SEARCH_LENGTH} символа для поиска</div>`;
     return;
   }
   const r = await api(`/api/messages/search?q=${encodeURIComponent(q)}`);
@@ -791,6 +801,11 @@ async function openOrCreateDialogWithUser(userId) {
 async function loadFriendsForGroupBuilder(query = '') {
   const q = query.trim();
   let items = allFriendsCache;
+  if (q.length > 0 && q.length < MIN_SEARCH_LENGTH) {
+    groupFriendsListEl.innerHTML = `<div class="empty-state">Введите минимум ${MIN_SEARCH_LENGTH} символа для поиска</div>`;
+    updateCreateGroupSubmitState();
+    return;
+  }
   if (groupBuilderMode === 'add' && currentChat) {
     const r = await api(`/api/messages/dialogs/${currentChat.chat_id}/addable-friends?q=${encodeURIComponent(q)}`);
     if (!r.ok) return;
@@ -1135,7 +1150,11 @@ function initWebSocket() {
 searchInputEl.addEventListener('input', (e) => {
   clearTimeout(searchTimer);
   const value = e.target.value;
-  searchTimer = setTimeout(() => renderSearch(value), 160);
+  if (value.trim().length < MIN_SEARCH_LENGTH) {
+    renderSearch(value);
+    return;
+  }
+  searchTimer = setTimeout(() => renderSearch(value), SEARCH_DEBOUNCE_MS);
 });
 
 dialogsListEl.addEventListener('scroll', async () => {
@@ -1194,7 +1213,15 @@ groupTitleInputEl.addEventListener('input', () => {
   renderGroupDraftAvatar();
   updateCreateGroupSubmitState();
 });
-groupFriendsSearchInputEl.addEventListener('input', () => loadFriendsForGroupBuilder(groupFriendsSearchInputEl.value));
+groupFriendsSearchInputEl.addEventListener('input', () => {
+  clearTimeout(groupFriendsSearchTimer);
+  const value = groupFriendsSearchInputEl.value;
+  if (value.trim().length < MIN_SEARCH_LENGTH) {
+    loadFriendsForGroupBuilder(value);
+    return;
+  }
+  groupFriendsSearchTimer = setTimeout(() => loadFriendsForGroupBuilder(value), SEARCH_DEBOUNCE_MS);
+});
 createGroupSubmitBtnEl.addEventListener('click', submitCreateGroup);
 chatInfoBackBtnEl.addEventListener('click', async () => {
   closeChatInfoModal();

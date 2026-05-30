@@ -162,7 +162,7 @@ async def get_marital_statuses(current_user=Depends(require_authenticated_user),
 
 @router.get("/cities")
 async def get_cities(
-    q: str = Query(min_length=1, max_length=100),
+    q: str = Query(min_length=3, max_length=100),
     current_user=Depends(require_authenticated_user),
     db=Depends(get_db),
 ):

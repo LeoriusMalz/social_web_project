@@ -84,22 +84,22 @@
 ### 2.2 Пользователи и соц взаимодействия
 
 #### `users`
-| Поле | Тип | Ограничения | Описание |
-|---|---|---|---|
-| `id` | `SERIAL` | `PRIMARY KEY` | ID пользователя |
-| `name` | `VARCHAR(30)` | `NOT NULL`, `DEFAULT 'Name'` | Имя |
+| Поле | Тип | Ограничения                     | Описание |
+|---|---|---------------------------------|---|
+| `id` | `SERIAL` | `PRIMARY KEY`                   | ID пользователя |
+| `name` | `VARCHAR(30)` | `NOT NULL`, `DEFAULT 'Name'`    | Имя |
 | `surname` | `VARCHAR(30)` | `NOT NULL`, `DEFAULT 'Surname'` | Фамилия |
-| `patronym` | `VARCHAR(40)` | `DEFAULT NULL` | Отчество |
-| `nickname` | `VARCHAR(20)` | `UNIQUE`, `NOT NULL` | Никнейм |
-| `phone` | `VARCHAR(18)` | `UNIQUE`, `DEFAULT NULL` | Телефон |
-| `email` | `TEXT` | `UNIQUE`, `NOT NULL` | Email |
-| `sex` | `CHAR(1)` | `NOT NULL` | Пол (`М`/`Ж`) |
-| `marital_status_id` | `INTEGER` | `FK`, `DEFAULT NULL` | Семейный статус |
-| `city_id` | `INTEGER` | `FK`, `DEFAULT NULL` | Город |
-| `created_at` | `TIMESTAMP` | - | Дата создания |
-| `deleted_at` | `TIMESTAMP` | `DEFAULT NULL` | Soft-delete метка |
-| `password_hash` | `TEXT` | `NOT NULL` | Хэш пароля |
-| `avatar` | `BYTEA` | `DEFAULT NULL` | Бинарные данные аватара |
+| `patronym` | `VARCHAR(40)` | `DEFAULT NULL`                  | Отчество |
+| `nickname` | `VARCHAR(20)` | `UNIQUE`, `NOT NULL`            | Никнейм |
+| `phone` | `VARCHAR(18)` | `UNIQUE`, `DEFAULT NULL`        | Телефон |
+| `email` | `TEXT` | `UNIQUE`, `NOT NULL`            | Email |
+| `sex` | `CHAR(1)` | -                               | Пол (`М`/`Ж`) |
+| `marital_status_id` | `INTEGER` | `FK`, `DEFAULT NULL`            | Семейный статус |
+| `city_id` | `INTEGER` | `FK`, `DEFAULT NULL`            | Город |
+| `created_at` | `TIMESTAMP` | -                               | Дата создания |
+| `deleted_at` | `TIMESTAMP` | `DEFAULT NULL`                  | Soft-delete метка |
+| `password_hash` | `TEXT` | `NOT NULL`                      | Хэш пароля |
+| `avatar` | `BYTEA` | `DEFAULT NULL`                  | Бинарные данные аватара |
 
 FK:
 - `marital_status_id -> marital_statuses.status_id` (`ON DELETE SET NULL`, `ON UPDATE CASCADE`)

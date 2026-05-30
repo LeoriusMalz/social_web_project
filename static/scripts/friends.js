@@ -14,6 +14,10 @@ const allowedTabs = new Set(["friends", "outgoing", "incoming"]);
 const initialTab = allowedTabs.has(storedTab) ? storedTab : queryTab;
 let activeTab = allowedTabs.has(initialTab) ? initialTab : "friends";
 let searchValue = "";
+let searchTimer = null;
+
+const MIN_SEARCH_LENGTH = 3;
+const SEARCH_DEBOUNCE_MS = 500;
 
 function getFullName(user) {
     return `${user.surname} ${user.name}`;
@@ -250,7 +254,14 @@ function renderSearchList(users, query) {
 async function renderCurrentState() {
     const query = searchValue.trim();
 
-    if (query.length > 0) {
+    if (query.length > 0 && query.length < MIN_SEARCH_LENGTH) {
+        tabsEl.style.display = 'none';
+        listEl.innerHTML = '';
+        listEl.appendChild(createEmptyState(`Введите минимум ${MIN_SEARCH_LENGTH} символа для поиска`));
+        return;
+    }
+
+    if (query.length >= MIN_SEARCH_LENGTH) {
         tabsEl.style.display = 'none';
         const users = await apiSearchUsers(query);
         renderSearchList(users, query);
@@ -286,9 +297,14 @@ tabButtons.forEach(button => {
     });
 });
 
-searchInputEl.addEventListener("input", async (event) => {
+searchInputEl.addEventListener("input", (event) => {
     searchValue = event.target.value;
-    await renderCurrentState();
+    clearTimeout(searchTimer);
+    if (searchValue.trim().length < MIN_SEARCH_LENGTH) {
+        renderCurrentState();
+        return;
+    }
+    searchTimer = setTimeout(() => renderCurrentState(), SEARCH_DEBOUNCE_MS);
 });
 
 const initialActiveButton = document.querySelector(`.friends-tab[data-tab="${activeTab}"]`);

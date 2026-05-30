@@ -10,6 +10,11 @@ const cityDropdown = document.getElementById('cities-dropdown');
 const cityInput = document.getElementById('city');
 const cityIdInput = document.getElementById('city-id');
 
+const MIN_SEARCH_LENGTH = 3;
+const SEARCH_DEBOUNCE_MS = 500;
+
+let citySearchTimer = null;
+
 const fields = {
     name: document.getElementById('name'),
     surname: document.getElementById('surname'),
@@ -221,7 +226,14 @@ async function loadMaritalStatuses(selectedId = null) {
 
 let cityAbortController = null;
 async function searchCities(query) {
-    if (!query.trim()) {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+        cityDropdown.hidden = true;
+        cityDropdown.innerHTML = '';
+        return;
+    }
+
+    if (normalizedQuery.length < MIN_SEARCH_LENGTH) {
         cityDropdown.hidden = true;
         cityDropdown.innerHTML = '';
         return;
@@ -233,7 +245,7 @@ async function searchCities(query) {
     cityAbortController = new AbortController();
 
     try {
-        const response = await fetch(`/api/settings/cities?q=${encodeURIComponent(query.trim())}`, { signal: cityAbortController.signal });
+        const response = await fetch(`/api/settings/cities?q=${encodeURIComponent(normalizedQuery)}`, { signal: cityAbortController.signal });
         if (!response.ok) return;
         const cities = await response.json();
 
@@ -411,9 +423,15 @@ fields.phone.addEventListener('input', () => {
     fields.phone.setSelectionRange(fields.phone.value.length, fields.phone.value.length);
 });
 
-cityInput.addEventListener('input', async () => {
+cityInput.addEventListener('input', () => {
     cityIdInput.value = '';
-    await searchCities(cityInput.value);
+    clearTimeout(citySearchTimer);
+    const value = cityInput.value;
+    if (value.trim().length < MIN_SEARCH_LENGTH) {
+        searchCities(value);
+        return;
+    }
+    citySearchTimer = setTimeout(() => searchCities(value), SEARCH_DEBOUNCE_MS);
 });
 
 document.getElementById('clear-city-btn').addEventListener('click', () => {
